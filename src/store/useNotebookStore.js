@@ -561,6 +561,62 @@ const useNotebookStore = create((set, get) => {
       get().toast('Deleted')
     },
 
+    // Deep-copies a subject/chapter/topic with fresh ids at every level and
+    // inserts it right after the original. ★ marks are keyed by topicId, so
+    // they intentionally stay with the original.
+    duplicateNode(type, ids) {
+      get().snapshot()
+      const cloneBlock = (b) => ({ ...JSON.parse(JSON.stringify(b)), id: uuid() })
+      const cloneTopic = (t) => ({
+        ...t,
+        id: uuid(),
+        createdAt: now(),
+        updatedAt: now(),
+        blocks: (t.blocks || []).map(cloneBlock),
+      })
+      const cloneChapter = (c) => ({ ...c, id: uuid(), topics: (c.topics || []).map(cloneTopic) })
+      let copiedName = null
+      commit((st) => {
+        if (type === 'subject') {
+          const i = st.subjects.findIndex((s) => s._id === ids.subjectId)
+          if (i < 0) return
+          const src = st.subjects[i]
+          const copy = {
+            ...src,
+            _id: uuid(),
+            name: src.name + ' (copy)',
+            chapters: (src.chapters || []).map(cloneChapter),
+          }
+          st.subjects.splice(i + 1, 0, copy)
+          renumber(st.subjects)
+          copiedName = src.name
+        } else if (type === 'chapter') {
+          const subject = findSubject(st.subjects, ids.subjectId)
+          if (!subject) return
+          const i = subject.chapters.findIndex((c) => c.id === ids.chapterId)
+          if (i < 0) return
+          const copy = cloneChapter(subject.chapters[i])
+          copy.name += ' (copy)'
+          subject.chapters.splice(i + 1, 0, copy)
+          renumber(subject.chapters)
+          copiedName = subject.chapters[i].name
+        } else {
+          const found = findChapter(st.subjects, ids.subjectId, ids.chapterId)
+          if (!found) return
+          const i = found.chapter.topics.findIndex((t) => t.id === ids.topicId)
+          if (i < 0) return
+          const copy = cloneTopic(found.chapter.topics[i])
+          copy.name += ' (copy)'
+          found.chapter.topics.splice(i + 1, 0, copy)
+          renumber(found.chapter.topics)
+          copiedName = found.chapter.topics[i].name
+        }
+      })
+      set({ menu: null, deleteArm: false })
+      if (copiedName) get().toast('⧉ Duplicated "' + copiedName + '"')
+      else get().toast('Could not duplicate — item not found')
+    },
+
     renameTopicTitle(topicId, name) {
       commit((st) => {
         const found = findTopicById(st.subjects, topicId)

@@ -100,6 +100,7 @@ export default function NodeContextMenu({ type, ids, name, color }) {
               onPick={(c) => store.recolorSubject(ids.subjectId, c)}
             />
           )}
+          <div className="menu-item" onClick={stop(() => store.duplicateNode(type, ids))}>⧉ Duplicate</div>
           <div className="menu-item" onClick={stop(() => store.moveNode(type, ids, -1))}>↑ Move up</div>
           <div className="menu-item" onClick={stop(() => store.moveNode(type, ids, 1))}>↓ Move down</div>
           <div
