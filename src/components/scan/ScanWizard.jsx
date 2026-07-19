@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import useNotebookStore, { findSubject } from '../../store/useNotebookStore'
 import { useNav } from '../../hooks/useNav'
-import { convertScan } from '../../api'
+import { convertScan, uploadFile } from '../../api'
 import { sanitizeHtml, sanitizeSvg, stripTags } from '../../utils/richtext'
 import Modal from '../ui/Modal'
 
@@ -51,8 +51,9 @@ function ScanWizardModal({ dest }) {
   const [imgUrl, setImgUrl] = useState('')
   const [converting, setConverting] = useState(false)
   const [statusIdx, setStatusIdx] = useState(0)
-  const [fields, setFields] = useState(null) // {title, body, formula, svg, caption, tip, transcript, scanUrl}
+  const [fields, setFields] = useState(null) // {title, body, formula, svg, caption, tip, transcript}
   const [keepOrig, setKeepOrig] = useState(true)
+  const [saving, setSaving] = useState(false)
 
   // Destination (pre-targeted from the note toolbar 📷; falls back to first nodes).
   const [destS, setDestS] = useState(dest.subjectId || subjects[0]?._id || '')
@@ -68,6 +69,7 @@ function ScanWizardModal({ dest }) {
     chapter && destT !== 'new' ? chapter.topics.find((t) => t.id === destT) || null : null
 
   const fileRef = useRef(null)
+  const scanFileRef = useRef(null) // original File — only uploaded on save when keepOrig
   const timersRef = useRef([])
   const aliveRef = useRef(true)
   const urlRef = useRef('')
@@ -88,6 +90,7 @@ function ScanWizardModal({ dest }) {
     if (file.size > MAX_BYTES) return store.toast('Image is too large — 10MB max')
     const url = URL.createObjectURL(file)
     urlRef.current = url
+    scanFileRef.current = file
     setImgUrl(url)
     setStage('review')
     setConverting(true)
@@ -108,7 +111,6 @@ function ScanWizardModal({ dest }) {
           caption: res.diagram?.caption || '',
           tip: res.tip || '',
           transcript: res.transcript || '',
-          scanUrl: res.scanUrl || '',
         })
         setDestName(res.title || 'Scanned note')
       })
@@ -134,8 +136,8 @@ function ScanWizardModal({ dest }) {
       ? `Add a chapter to ${subject.name} first.`
       : ''
 
-  const onSave = () => {
-    if (converting || !fields || noDestination) return
+  const onSave = async () => {
+    if (converting || saving || !fields || noDestination) return
     const blocks = []
     if (fields.body.trim()) blocks.push({ type: 'text', payload: { html: plainToHtml(fields.body) } })
     if (fields.formula.trim()) blocks.push({ type: 'math', payload: { text: fields.formula.trim() } })
@@ -143,8 +145,20 @@ function ScanWizardModal({ dest }) {
     if (svg.trim()) blocks.push({ type: 'diagram', payload: { svg, caption: fields.caption.trim() } })
     if (fields.tip.trim())
       blocks.push({ type: 'text', payload: { html: `<p><b>Tip:</b> ${escapeHtml(fields.tip.trim())}</p>` } })
-    if (keepOrig && fields.scanUrl)
-      blocks.push({ type: 'scan', payload: { imageUrl: fields.scanUrl, transcript: fields.transcript } })
+    if (keepOrig && scanFileRef.current) {
+      // The original is only uploaded here, once the user has chosen to keep it.
+      setSaving(true)
+      try {
+        const stored = await uploadFile(scanFileRef.current)
+        blocks.push({ type: 'scan', payload: { imageUrl: stored.url, transcript: fields.transcript } })
+      } catch (err) {
+        store.toast(err?.response?.data?.error || 'Could not store the original scan — try again or uncheck “Keep original scan”')
+        return
+      } finally {
+        if (aliveRef.current) setSaving(false)
+      }
+      if (!aliveRef.current) return
+    }
     if (!blocks.length) return store.toast('Nothing to save — all fields are empty')
     const result = store.saveScanToTopic({
       subjectId: subject._id,
@@ -299,10 +313,10 @@ function ScanWizardModal({ dest }) {
             <button className="modal-btn-ghost" onClick={() => store.closeScan()}>Discard</button>
             <button
               className="modal-btn-primary"
-              disabled={converting || !!noDestination}
+              disabled={converting || saving || !!noDestination}
               onClick={onSave}
             >
-              Save note
+              {saving ? 'Saving…' : 'Save note'}
             </button>
           </div>
         </>
