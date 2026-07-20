@@ -18,8 +18,8 @@ export async function fetchState() {
   return res.data
 }
 
-export async function putState(subjects, important) {
-  const res = await http.put('/api/state', { subjects, important })
+export async function putState(subjects, important, baseVersion) {
+  const res = await http.put('/api/state', { subjects, important, baseVersion })
   return res.data
 }
 

@@ -8,8 +8,6 @@ import { stripTags } from '../utils/richtext'
 export const SUBJECT_PALETTE = ['#b8552e', '#1f8a70', '#5a6aa8', '#8a5aa8', '#a8752e', '#2e7aa8', '#a83e5a']
 export const SWATCH_COLORS = ['#b8552e', '#1f8a70', '#5a6aa8', '#8a5aa8', '#a8752e', '#a83e5a']
 
-export const PLACEHOLDER_HTML = 'A fresh page. Start typing below, or scan handwritten notes into it.'
-
 const uuid = () => crypto.randomUUID()
 const now = () => new Date().toISOString()
 const byPosition = (a, b) => (a.position ?? 0) - (b.position ?? 0)
@@ -230,6 +228,7 @@ const useNotebookStore = create((set, get) => {
     loaded: false,
     dirty: false,
     rev: 0, // bumps on every data change; save() uses it to detect mid-flight edits
+    serverVersion: 0, // last state version loaded from the server; sent with saves to detect stale snapshots
     saveStatus: 'idle', // idle | saving | saved
     undoStack: [],
     undoTick: 0, // bumps on undo so open editors can reset
@@ -274,6 +273,7 @@ const useNotebookStore = create((set, get) => {
         set({
           subjects,
           important,
+          serverVersion: data.version || 0,
           loaded: true,
           dirty: important.length !== (data.important || []).length,
         })
@@ -283,25 +283,53 @@ const useNotebookStore = create((set, get) => {
       }
     },
 
+    // Silently pull the latest state (e.g. when the tab regains focus) so a
+    // long-open tab never autosaves a stale snapshot over newer edits made on
+    // another device. Skipped whenever there are unsaved local changes.
+    async refresh() {
+      const { loaded, dirty, saveStatus } = get()
+      if (!loaded || dirty || saveStatus === 'saving') return
+      try {
+        const data = await fetchState()
+        if (get().dirty || get().saveStatus === 'saving') return
+        const subjects = normalize(data.subjects)
+        set({
+          subjects,
+          important: pruneMarks(subjects, data.important || []),
+          serverVersion: data.version || 0,
+        })
+      } catch {
+        // offline — keep what we have
+      }
+    },
+
     async save({ silent = false } = {}) {
       clearTimeout(autosaveTimer)
-      const { subjects, important, saveStatus, rev } = get()
+      const { subjects, important, saveStatus, rev, serverVersion } = get()
       if (saveStatus === 'saving') {
         scheduleAutosave() // a flush is in flight; pick this change up right after
         return
       }
       set({ saveStatus: 'saving' })
       try {
-        await putState(subjects, important)
+        const saved = await putState(subjects, important, serverVersion)
         // Only mark clean if nothing changed while the PUT was in flight.
         const clean = get().rev === rev
-        set({ saveStatus: 'saved', ...(clean ? { dirty: false } : {}) })
+        set({ saveStatus: 'saved', serverVersion: saved.version ?? serverVersion, ...(clean ? { dirty: false } : {}) })
         if (!clean) scheduleAutosave()
         if (!silent) get().toast('💾 All changes saved')
         clearTimeout(savedTimer)
         savedTimer = setTimeout(() => set({ saveStatus: 'idle' }), 1600)
-      } catch {
+      } catch (err) {
         set({ saveStatus: 'idle' })
+        if (err?.response?.status === 409) {
+          // Another device saved since this one loaded. Its data is newer —
+          // reload it instead of overwriting it with our stale snapshot.
+          set({ dirty: false })
+          await get().load()
+          get().toast('⚠️ Notes changed on another device — reloaded the latest version')
+          return
+        }
         scheduleAutosave(AUTOSAVE_RETRY)
         if (!silent) get().toast('Save failed — is the server running?')
       }
@@ -502,7 +530,7 @@ const useNotebookStore = create((set, get) => {
           position: found.chapter.topics.length,
           createdAt: now(),
           updatedAt: now(),
-          blocks: [{ id: uuid(), type: 'text', payload: { html: PLACEHOLDER_HTML } }],
+          blocks: [{ id: uuid(), type: 'text', payload: { html: '' } }],
         }
         found.chapter.topics.push(topic)
       })

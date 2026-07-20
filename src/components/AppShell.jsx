@@ -21,6 +21,11 @@ export default function AppShell() {
 
   useEffect(() => {
     if (!useNotebookStore.getState().loaded) useNotebookStore.getState().load()
+    // Re-sync when the tab regains focus so edits made on another device
+    // (e.g. the phone) show up here instead of being autosaved over.
+    const onFocus = () => useNotebookStore.getState().refresh()
+    window.addEventListener('focus', onFocus)
+    return () => window.removeEventListener('focus', onFocus)
   }, [])
 
   return (
