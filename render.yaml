@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: inkbook-client
+    runtime: static
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_URL
+        sync: false # set to the backend URL in the Render dashboard
+    routes:
+      # SPA fallback so React Router deep links resolve to index.html
+      - type: rewrite
+        source: /*
+        destination: /index.html

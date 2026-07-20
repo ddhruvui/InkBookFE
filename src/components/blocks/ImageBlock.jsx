@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import useNotebookStore from '../../store/useNotebookStore'
-import { uploadFile } from '../../api'
+import { uploadFile, absUrl } from '../../api'
 
 // Dashed dropzone when empty; contained image + caption when filled.
 // Upload posts to /api/uploads and stores the returned URL.
@@ -26,7 +26,7 @@ export default function ImageBlock({ block, topicId }) {
   return (
     <div className="image-block">
       {url ? (
-        <div className="image-view" style={{ backgroundImage: `url("${url}")` }} />
+        <div className="image-view" style={{ backgroundImage: `url("${absUrl(url)}")` }} />
       ) : (
         <label className="image-dropzone">
           <input type="file" accept="image/*" onChange={onFile} style={{ display: 'none' }} />
