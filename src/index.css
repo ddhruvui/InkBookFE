@@ -272,7 +272,8 @@ a:hover { color: #8f3f1f; }
 .text-block p:last-child { margin-bottom: 0; }
 
 /* ★ important snippet — gold underline matching the star */
-.imp-underline { border-bottom: 2px solid #c9962e; padding-bottom: 1px; }
+.imp-underline { border-bottom: 2px solid #c9962e; padding-bottom: 1px; cursor: pointer; }
+.imp-underline:hover { background: #f5d98f; border-radius: 3px; }
 
 .code-block { background: #fffdf8; border: 1px solid #e0d3bc; border-radius: 10px; overflow: hidden; }
 .code-head {
@@ -598,6 +599,10 @@ a:hover { color: #8f3f1f; }
   cursor: pointer; display: flex; gap: 10px; align-items: baseline;
 }
 .imp-item:hover { border-color: #b8552e; }
+.imp-remove {
+  align-self: center; color: #9a875f; font-size: 13px; padding: 2px 6px; border-radius: 6px;
+}
+.imp-remove:hover { color: #b8552e; background: #f7ead9; }
 .imp-star { color: #c9962e; }
 .imp-text { font-size: 13.5px; }
 .imp-snippet { background: #f5d98f; padding: 0 3px; border-radius: 3px; }

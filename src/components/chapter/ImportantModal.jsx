@@ -40,6 +40,16 @@ export default function ImportantModal() {
               </div>
               <div className="imp-path">{mark.topic.name}</div>
             </div>
+            <span
+              className="imp-remove"
+              title="Remove mark"
+              onClick={(e) => {
+                e.stopPropagation()
+                store.removeImportant(mark.id)
+              }}
+            >
+              ✕
+            </span>
           </div>
         ))}
         {marks.length === 0 && (

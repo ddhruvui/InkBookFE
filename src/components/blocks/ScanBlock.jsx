@@ -20,7 +20,14 @@ export default function ScanBlock({ block, topicId }) {
       {block.payload.imageUrl && (
         <img className="scan-image" src={block.payload.imageUrl} alt="Original scan" />
       )}
-      <div className="scan-text" dangerouslySetInnerHTML={{ __html: html }} />
+      <div
+        className="scan-text"
+        onClick={(e) => {
+          const imp = e.target.closest && e.target.closest('.imp-underline')
+          if (imp) useNotebookStore.getState().removeImportantByText(topicId, imp.textContent)
+        }}
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
     </div>
   )
 }

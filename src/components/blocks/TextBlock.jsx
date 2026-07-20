@@ -23,7 +23,9 @@ export default function TextBlock({ block, topicId, onStartEdit }) {
       title="Double-click to edit"
       onClick={(e) => {
         const link = e.target.getAttribute && e.target.getAttribute('data-link')
-        if (link) goByName(link)
+        if (link) return goByName(link)
+        const imp = e.target.closest && e.target.closest('.imp-underline')
+        if (imp) useNotebookStore.getState().removeImportantByText(topicId, imp.textContent)
       }}
       onDoubleClick={onStartEdit}
       dangerouslySetInnerHTML={{ __html: html }}

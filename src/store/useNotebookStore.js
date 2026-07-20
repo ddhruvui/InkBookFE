@@ -371,7 +371,16 @@ const useNotebookStore = create((set, get) => {
       set({ insertOpen: open })
     },
     escapeAll() {
-      set({ palOpen: false, menu: null, insertOpen: false, drawerOpen: false, deleteArm: false, scanOpen: null })
+      set({
+        palOpen: false,
+        menu: null,
+        insertOpen: false,
+        drawerOpen: false,
+        deleteArm: false,
+        scanOpen: null,
+        importantOpen: null,
+        exportModal: null,
+      })
     },
 
     /* ── tree menu / inline add ── */
@@ -743,11 +752,27 @@ const useNotebookStore = create((set, get) => {
     /* ── important marks ── */
     markImportant(topicId, text) {
       set((st) => ({
-        important: [...st.important, { id: uuid(), topicId, text: text.slice(0, 120), createdAt: now() }],
+        important: [...st.important, { id: uuid(), topicId, text, createdAt: now() }],
         dirty: true,
         rev: st.rev + 1,
       }))
       get().toast('★ Marked important — collected in this chapter')
+    },
+
+    // Click on an underlined ★ snippet in a note: remove the matching mark.
+    removeImportantByText(topicId, text) {
+      const mark = get().important.find((m) => m.topicId === topicId && m.text === text)
+      if (mark) get().removeImportant(mark.id)
+    },
+
+    removeImportant(markId) {
+      get().snapshot()
+      set((st) => ({
+        important: st.important.filter((m) => m.id !== markId),
+        dirty: true,
+        rev: st.rev + 1,
+      }))
+      get().toast('★ Mark removed — ↩ Undo to restore')
     },
 
     /* ── ✦ AI: scan wizard ── */

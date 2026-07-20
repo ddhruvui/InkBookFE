@@ -49,7 +49,9 @@ export function underlineImportantHtml(html, texts) {
     out = out
       .split(/(<[^>]+>)/g)
       .map((part) =>
-        part.startsWith('<') ? part : part.replace(re, "<span class='imp-underline'>$1</span>")
+        part.startsWith('<')
+          ? part
+          : part.replace(re, "<span class='imp-underline' title='★ important — click to remove'>$1</span>")
       )
       .join('')
   })
