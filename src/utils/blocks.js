@@ -46,10 +46,14 @@ export const INSERT_DEFS = [
   { label: '🖼 Image', kind: 'image' },
 ]
 
-// Editor prefill for freshly inserted blocks (prototype insertItems pick()).
-export function insertPrefill(kind) {
-  if (kind === 'code2') return '\n---\n'
-  if (kind === 'table') return 'Col 1 | Col 2\n | '
-  if (kind === 'todo') return 'New task'
-  return ''
+// Greyed format hint shown in an empty editor — never inserted as real text.
+export const EDIT_PLACEHOLDERS = {
+  text: 'Write a paragraph…',
+  code: '# code',
+  code2: 'before\n---\nafter',
+  math: 'y = …',
+  todo: 'New task',
+  table: 'Col 1 | Col 2\n… | …',
+  image: 'Caption',
+  link: 'Label | https://…',
 }

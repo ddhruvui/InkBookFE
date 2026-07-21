@@ -3,7 +3,6 @@ import { useParams, Navigate } from 'react-router-dom'
 import useNotebookStore, { findTopic } from '../../store/useNotebookStore'
 import { useNav } from '../../hooks/useNav'
 import { useSelectionText } from '../../hooks/useSelectionText'
-import { insertPrefill } from '../../utils/blocks'
 import Button from '../ui/Button'
 import SaveButton from '../ui/SaveButton'
 import EditableTitle from './EditableTitle'
@@ -20,7 +19,8 @@ export default function NotePage() {
   const store = useNotebookStore.getState()
   const { goChapter } = useNav()
   const { selText, selActive, onMouseUp, clear } = useSelectionText()
-  // editing: { blockId, initialText? } — initialText set for freshly inserted blocks
+  // editing: { blockId } for an existing block, or { draft: kind, initialText }
+  // for a new block that is only added to the store when the editor is saved
   const [editing, setEditing] = useState(null)
 
   // Reset editor/selection state when navigating between topics or undoing.
@@ -38,9 +38,12 @@ export default function NotePage() {
   const closeEdit = () => setEditing(null)
 
   const onInsert = (kind) => {
-    const block = store.addBlock(topic.id, kind)
-    if (!block) return
-    if (kind !== 'image') setEditing({ blockId: block.id, initialText: insertPrefill(kind) })
+    // Image inserts an empty dropzone right away — there is no editor to cancel.
+    if (kind === 'image') {
+      store.addBlock(topic.id, kind)
+      return
+    }
+    setEditing({ draft: kind })
   }
 
   const markImportant = () => {

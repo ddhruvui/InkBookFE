@@ -184,6 +184,37 @@ export function searchNotes(subjects, important, q, filter, currentSubjectId) {
   return out.slice(0, 8)
 }
 
+const BLOCK_DEFAULTS = {
+  text: { html: '' },
+  code: { lang: 'python', text: '' },
+  code2: { lang: 'code', before: '', after: '' },
+  math: { text: 'y = …' },
+  todo: { text: 'New task', done: false },
+  table: { rows: [['Col 1', 'Col 2'], ['', '']] },
+  image: { url: null, caption: 'Caption' },
+}
+
+// Parses the inline editor's textarea value into the block payload (prototype saveEdit).
+function applyEditText(block, text) {
+  const p = block.payload
+  if (block.type === 'text') p.html = text.trim() || '…'
+  else if (block.type === 'code2') {
+    const parts = text.split(/\n---\n?/)
+    p.before = (parts[0] || '').trim()
+    p.after = (parts[1] || '').trim()
+  } else if (block.type === 'table') {
+    p.rows = text
+      .split('\n')
+      .filter((l) => l.trim())
+      .map((l) => l.split('|').map((c) => c.trim()))
+  } else if (block.type === 'image') p.caption = text.trim()
+  else if (block.type === 'link') {
+    const parts = text.split('|')
+    p.text = (parts[0] || '').trim()
+    p.url = (parts[1] || '').trim()
+  } else p.text = text
+}
+
 /* ── Store ── */
 
 let toastTimer = null
@@ -666,24 +697,29 @@ const useNotebookStore = create((set, get) => {
 
     /* ── blocks ── */
     addBlock(topicId, kind) {
-      const defaults = {
-        text: { html: '' },
-        code: { lang: 'python', text: '' },
-        code2: { lang: 'code', before: '', after: '' },
-        math: { text: 'y = …' },
-        todo: { text: 'New task', done: false },
-        table: { rows: [['Col 1', 'Col 2'], ['', '']] },
-        image: { url: null, caption: 'Caption' },
-      }
       let block = null
       commit((st) => {
         const found = findTopicById(st.subjects, topicId)
         if (!found) return
-        block = { id: uuid(), type: kind, payload: JSON.parse(JSON.stringify(defaults[kind])) }
+        block = { id: uuid(), type: kind, payload: JSON.parse(JSON.stringify(BLOCK_DEFAULTS[kind])) }
         found.topic.blocks.push(block)
         touch(found.topic)
       })
       return block
+    },
+
+    // Creates the block only when the draft editor is saved — cancel adds nothing.
+    insertBlock(topicId, kind, text) {
+      get().snapshot()
+      commit((st) => {
+        const found = findTopicById(st.subjects, topicId)
+        if (!found) return
+        const block = { id: uuid(), type: kind, payload: JSON.parse(JSON.stringify(BLOCK_DEFAULTS[kind])) }
+        applyEditText(block, text)
+        found.topic.blocks.push(block)
+        touch(found.topic)
+      })
+      get().toast('Saved')
     },
 
     appendTextBlock(topicId, html) {
@@ -706,23 +742,7 @@ const useNotebookStore = create((set, get) => {
         if (!found) return
         const block = found.topic.blocks.find((b) => b.id === blockId)
         if (!block) return
-        const p = block.payload
-        if (block.type === 'text') p.html = text.trim() || '…'
-        else if (block.type === 'code2') {
-          const parts = text.split(/\n---\n?/)
-          p.before = (parts[0] || '').trim()
-          p.after = (parts[1] || '').trim()
-        } else if (block.type === 'table') {
-          p.rows = text
-            .split('\n')
-            .filter((l) => l.trim())
-            .map((l) => l.split('|').map((c) => c.trim()))
-        } else if (block.type === 'image') p.caption = text.trim()
-        else if (block.type === 'link') {
-          const parts = text.split('|')
-          p.text = (parts[0] || '').trim()
-          p.url = (parts[1] || '').trim()
-        } else p.text = text
+        applyEditText(block, text)
         touch(found.topic)
         st.important = pruneMarks(st.subjects, st.important, topicId)
       })

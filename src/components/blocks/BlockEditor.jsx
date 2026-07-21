@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { EDIT_HINTS, editRows } from '../../utils/blocks'
+import { EDIT_HINTS, EDIT_PLACEHOLDERS, editRows } from '../../utils/blocks'
 
 // B / I / Highlight / [[link]] — wraps the current textarea selection
 // (exact markup from the prototype fmt* handlers).
@@ -50,6 +50,7 @@ export default function BlockEditor({ block, initialText, onSave, onCancel }) {
         className="editor-textarea"
         value={text}
         onChange={(e) => setText(e.target.value)}
+        placeholder={EDIT_PLACEHOLDERS[block.type] || ''}
         rows={editRows(block.type)}
         autoFocus
       />
