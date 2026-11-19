@@ -1,8 +1,9 @@
 import useNotebookStore from '../../store/useNotebookStore'
 import BlockFrame from './BlockFrame'
 import BlockEditor from './BlockEditor'
+import TableEditor from './TableEditor'
 
-export default function BlockList({ topic, editing, onStartEdit, onCloseEdit }) {
+export default function BlockList({ topic, editing, onStartEdit, onCloseEdit, onKeepAsText }) {
   const store = useNotebookStore.getState()
   return (
     <>
@@ -20,6 +21,19 @@ export default function BlockList({ topic, editing, onStartEdit, onCloseEdit }) 
       {editing?.draft && (
         <div className="block-frame">
           <div className="block-body">
+            {editing.draft === 'table' ? (
+              <TableEditor
+                key={'draft-table-' + (editing.pastedFrom || '')}
+                initialRows={editing.initialRows}
+                pastedFrom={editing.pastedFrom}
+                onKeepAsText={editing.pastedFrom ? () => onKeepAsText?.(editing.pastedFrom) : undefined}
+                onSave={(rows) => {
+                  store.insertBlock(topic.id, 'table', rows)
+                  onCloseEdit()
+                }}
+                onCancel={onCloseEdit}
+              />
+            ) : (
             <BlockEditor
               key={'draft-' + editing.draft}
               block={{ type: editing.draft }}
@@ -30,6 +44,7 @@ export default function BlockList({ topic, editing, onStartEdit, onCloseEdit }) 
               }}
               onCancel={onCloseEdit}
             />
+            )}
           </div>
         </div>
       )}

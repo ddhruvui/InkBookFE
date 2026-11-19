@@ -1,12 +1,13 @@
 // Block-editor helpers (values copied from the prototype script).
+import { htmlToEditText } from './richtext'
 
 export const EDIT_HINTS = {
-  text: 'EDIT PARAGRAPH — HTML + [[LINKS]] ALLOWED',
+  text: 'EDIT PARAGRAPH — ENTER = NEW LINE · [[LINKS]] ALLOWED',
   code: 'EDIT CODE',
   code2: 'EDIT — BEFORE, THEN --- ON ITS OWN LINE, THEN AFTER',
   math: 'EDIT FORMULA',
   todo: 'EDIT TASK',
-  table: 'EDIT TABLE — ONE ROW PER LINE, CELLS SEPARATED BY |',
+  table: 'EDIT TABLE — TAB / ENTER TO MOVE · PASTE FROM EXCEL, SHEETS OR MARKDOWN',
   image: 'EDIT CAPTION',
   link: 'EDIT — LABEL | URL',
 }
@@ -21,7 +22,7 @@ export function blockEditText(block) {
   const p = block.payload || {}
   switch (block.type) {
     case 'text':
-      return p.html || ''
+      return htmlToEditText(p.html || '')
     case 'code2':
       return (p.before || '') + '\n---\n' + (p.after || '')
     case 'table':

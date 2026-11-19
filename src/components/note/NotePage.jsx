@@ -46,6 +46,13 @@ export default function NotePage() {
     setEditing({ draft: kind })
   }
 
+  // A table pasted into the composer opens the grid editor prefilled.
+  const onPasteTable = (rows, rawText) => setEditing({ draft: 'table', initialRows: rows, pastedFrom: rawText || ' ' })
+  const keepAsText = (rawText) => {
+    closeEdit()
+    if (rawText.trim()) store.appendTextBlock(topic.id, rawText.trim())
+  }
+
   const markImportant = () => {
     store.markImportant(topic.id, selText)
     clear()
@@ -92,9 +99,14 @@ export default function NotePage() {
           <EditableTitle topic={topic} />
           <div style={{ marginBottom: 16 }} />
           <HighlightChip />
-          <BlockList topic={topic} editing={editing} onStartEdit={startEdit} onCloseEdit={closeEdit} />
+          {topic.blocks.length === 0 && !editing && (
+            <div className="empty-topic no-print">
+              This page is empty. Start typing below, or paste a table straight from Excel, Google Sheets or a web page.
+            </div>
+          )}
+          <BlockList topic={topic} editing={editing} onStartEdit={startEdit} onCloseEdit={closeEdit} onKeepAsText={keepAsText} />
           <LinkedFromPanel topic={topic} />
-          <QuickComposer topicId={topic.id} onInsert={onInsert} />
+          <QuickComposer topicId={topic.id} onInsert={onInsert} onPasteTable={onPasteTable} />
         </div>
       </div>
     </>

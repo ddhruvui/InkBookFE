@@ -1,6 +1,7 @@
 import useNotebookStore from '../../store/useNotebookStore'
 import { isEditable, blockEditText } from '../../utils/blocks'
 import BlockEditor from './BlockEditor'
+import TableEditor from './TableEditor'
 import TextBlock from './TextBlock'
 import CodeBlock from './CodeBlock'
 import DiffBlock from './DiffBlock'
@@ -46,7 +47,7 @@ export default function BlockFrame({ block, topicId, editing, onStartEdit, onClo
       case 'diagram':
         return <DiagramBlock block={block} />
       case 'table':
-        return <TableBlock block={block} />
+        return <TableBlock block={block} onStartEdit={onStartEdit} />
       case 'image':
         return <ImageBlock block={block} topicId={topicId} />
       case 'scan':
@@ -59,7 +60,17 @@ export default function BlockFrame({ block, topicId, editing, onStartEdit, onClo
   return (
     <div className="block-frame">
       <div className="block-body">
-        {editing ? (
+        {editing && block.type === 'table' ? (
+          <TableEditor
+            key={block.id}
+            initialRows={block.payload.rows}
+            onSave={(rows) => {
+              store.saveBlockEdit(topicId, block.id, rows)
+              onCloseEdit()
+            }}
+            onCancel={onCloseEdit}
+          />
+        ) : editing ? (
           <BlockEditor
             key={block.id}
             block={block}

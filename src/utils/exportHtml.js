@@ -1,6 +1,6 @@
 // Compiled warm-paper HTML for print + PDF — block markup copied from the
 // prototype's compileHtml() (Design/Notebook.dc.html), extended with an image case.
-import { sanitizeHtml, sanitizeSvg, linkifyHtml } from './richtext'
+import { sanitizeHtml, sanitizeSvg, linkifyHtml, normalizeBreaks, breaksToHtml, stripTags } from './richtext'
 
 const esc = (s) =>
   String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -9,7 +9,8 @@ export function blockHtml(block) {
   const p = block.payload || {}
   switch (block.type) {
     case 'text':
-      return `<p style="font-size:14px;line-height:1.8;margin:0 0 10px">${sanitizeHtml(linkifyHtml(p.html))}</p>`
+      if (!stripTags(p.html).trim()) return ''
+      return `<div style="font-size:14px;line-height:1.8;margin:0 0 10px">${sanitizeHtml(breaksToHtml(linkifyHtml(normalizeBreaks(p.html))))}</div>`
     case 'math':
       return `<div style="text-align:center;font-family:monospace;border:1px dashed #d9c8a8;border-radius:8px;padding:10px;margin:0 0 10px">${esc(p.text)}</div>`
     case 'code':
@@ -21,13 +22,13 @@ export function blockHtml(block) {
     case 'link':
       return `<div style="font-size:13px;margin:0 0 8px">🔗 ${esc(p.text)} — ${esc(p.url)}</div>`
     case 'table':
-      return `<table style="border-collapse:collapse;margin:0 0 10px">${(p.rows || [])
+      return `<table style="border-collapse:collapse;margin:0 0 10px;width:100%;table-layout:auto">${(p.rows || [])
         .map(
           (r, i) =>
             `<tr>${r
               .map(
                 (c) =>
-                  `<td style="border:1px solid #cdbb96;padding:5px 10px;font-size:13px;${i === 0 ? 'font-weight:600;background:#efe6d6' : ''}">${esc(c)}</td>`
+                  `<td style="border:1px solid #cdbb96;padding:5px 10px;font-size:13px;vertical-align:top;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;${i === 0 ? 'font-weight:600;background:#efe6d6' : ''}">${esc(c)}</td>`
               )
               .join('')}</tr>`
         )

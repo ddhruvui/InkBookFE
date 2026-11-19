@@ -58,9 +58,40 @@ export function underlineImportantHtml(html, texts) {
   return out
 }
 
-// Full pipeline for text blocks: wiki-links + ★ underlines + search highlight + sanitize.
+/* ── Line breaks ──
+   Paragraph text is stored with plain "\n" newlines (what you type). Older notes
+   have hand-typed "<br/>" (often followed by a newline too); both forms render
+   the same, and the editor shows either as a plain new line. */
+
+// "<br/>\n" / "<br>" → "\n", and drop stray newlines around <p> tags.
+export function normalizeBreaks(html) {
+  return String(html ?? '')
+    .replace(/\r\n?/g, '\n')
+    .replace(/<br\s*\/?>[ \t]*\n?/gi, '\n')
+    .replace(/\s*\n\s*(<\/?p\b[^>]*>)/gi, '$1')
+    .replace(/(<\/?p\b[^>]*>)\s*\n\s*/gi, '$1')
+    .replace(/\n+$/, '')
+}
+
+// "\n" (outside tags) → <br>, for rendering.
+export function breaksToHtml(html) {
+  return String(html ?? '')
+    .split(/(<[^>]+>)/g)
+    .map((part) => (part.startsWith('<') ? part : part.replace(/\n/g, '<br>')))
+    .join('')
+}
+
+// What the inline editor shows for a stored paragraph: real new lines, no <br/>.
+export function htmlToEditText(html) {
+  return normalizeBreaks(html)
+}
+
+// Full pipeline for text blocks: line breaks + wiki-links + ★ underlines +
+// search highlight + sanitize. Breaks become <br> last so ★ snippets and
+// search matches that span a line still match the "\n" in the text.
 export function decorateHtml(html, hlQ, importantTexts) {
-  return sanitizeHtml(highlightHtml(underlineImportantHtml(linkifyHtml(html), importantTexts), hlQ))
+  const base = normalizeBreaks(html)
+  return sanitizeHtml(breaksToHtml(highlightHtml(underlineImportantHtml(linkifyHtml(base), importantTexts), hlQ)))
 }
 
 // Scan transcripts are plain text: escape, underline ★ snippets, sanitize.

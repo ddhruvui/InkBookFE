@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import useNotebookStore from '../../store/useNotebookStore'
-import { decorateHtml } from '../../utils/richtext'
+import { decorateHtml, stripTags } from '../../utils/richtext'
 import { useNav } from '../../hooks/useNav'
 
 // Lora 15px/1.85 HTML with wiki-links + ★ important underlines + search-match <mark>s.
@@ -17,6 +17,13 @@ export default function TextBlock({ block, topicId, onStartEdit }) {
     () => decorateHtml(block.payload.html, hlQ, markTexts),
     [block.payload.html, hlQ, markTexts]
   )
+  if (!stripTags(block.payload.html).trim()) {
+    return (
+      <div className="text-block text-empty no-print" onClick={onStartEdit}>
+        Click to write…
+      </div>
+    )
+  }
   return (
     <div
       className="text-block"

@@ -197,16 +197,19 @@ const BLOCK_DEFAULTS = {
 // Parses the inline editor's textarea value into the block payload (prototype saveEdit).
 function applyEditText(block, text) {
   const p = block.payload
-  if (block.type === 'text') p.html = text.trim() || '…'
+  if (block.type === 'text') p.html = String(text).replace(/\r\n?/g, '\n').replace(/^\n+|\s+$/g, '') || '…'
   else if (block.type === 'code2') {
     const parts = text.split(/\n---\n?/)
     p.before = (parts[0] || '').trim()
     p.after = (parts[1] || '').trim()
   } else if (block.type === 'table') {
-    p.rows = text
-      .split('\n')
-      .filter((l) => l.trim())
-      .map((l) => l.split('|').map((c) => c.trim()))
+    // Grid editor passes rows directly; plain "a | b" text is still accepted.
+    p.rows = Array.isArray(text)
+      ? text.map((r) => r.map((c) => String(c ?? '')))
+      : String(text)
+          .split('\n')
+          .filter((l) => l.trim())
+          .map((l) => l.split('|').map((c) => c.trim()))
   } else if (block.type === 'image') p.caption = text.trim()
   else if (block.type === 'link') {
     const parts = text.split('|')
