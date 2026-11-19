@@ -2,6 +2,7 @@ import { useState } from 'react'
 import useNotebookStore from '../../store/useNotebookStore'
 import { looksLikeTable, parseHtmlTable, parseTableText } from '../../utils/table'
 import AddBlockMenu from './AddBlockMenu'
+import Icon from '../ui/Icon'
 
 // Bottom composer above a dashed divider: Enter adds a paragraph, Shift+Enter
 // is a new line inside it; pasting a table (Excel / Sheets / Numbers / web page /
@@ -30,20 +31,32 @@ export default function QuickComposer({ topicId, onInsert, onPasteTable }) {
   }
 
   return (
-    <div className="composer no-print">
-      <div className="composer-row">
-        <textarea
-          className="composer-textarea"
-          placeholder="Write here — Enter adds it, Shift+Enter for a new line. Paste a table from Sheets or Excel. Use [[Topic Name]] to link notes."
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={onKeyDown}
-          onPaste={onPaste}
-          rows={2}
-        />
-        <button className="composer-add-btn" onClick={() => store.setInsertOpen(!insertOpen)}>
-          ＋ Add block
+    <div className={`composer no-print ${draft ? 'has-text' : ''}`}>
+      <textarea
+        className="composer-textarea"
+        aria-label="Write a new paragraph"
+        placeholder="Write here — Enter adds it, Shift+Enter for a new line. Paste a table from Sheets or Excel. Use [[Topic Name]] to link notes."
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={onKeyDown}
+        onPaste={onPaste}
+        rows={2}
+      />
+      <div className="composer-foot">
+        <button
+          type="button"
+          className={`composer-add-btn ${insertOpen ? 'open' : ''}`}
+          aria-expanded={insertOpen}
+          onClick={() => store.setInsertOpen(!insertOpen)}
+        >
+          <Icon name="plus" size={15} /> Add block
         </button>
+        <span style={{ flex: 1 }} />
+        {draft.trim() && (
+          <span className="composer-hint">
+            <Icon name="enter" size={13} /> Enter to add · ⇧Enter new line
+          </span>
+        )}
       </div>
       {insertOpen && (
         <AddBlockMenu

@@ -2,7 +2,8 @@ import { useEffect } from 'react'
 import useNotebookStore from '../store/useNotebookStore'
 
 // Global shortcuts, matching the prototype exactly:
-// ⌘/Ctrl+Z undo (ignored while typing) · ⌘/Ctrl+S save · ⌘/Ctrl+K palette · Esc closes.
+// ⌘/Ctrl+Z undo (ignored while typing) · ⌘/Ctrl+S save · ⌘/Ctrl+K palette ·
+// ⌘/Ctrl+\\ toggles the sidebar · Esc closes.
 export function useHotkeys() {
   useEffect(() => {
     const onKeyDown = (e) => {
@@ -19,6 +20,10 @@ export function useHotkeys() {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault()
         st.togglePalette()
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === '\\') {
+        e.preventDefault()
+        st.toggleSide()
       }
       if (e.key === 'Escape') st.escapeAll()
     }

@@ -3,11 +3,14 @@ import { useParams, Navigate } from 'react-router-dom'
 import useNotebookStore, { findTopic } from '../../store/useNotebookStore'
 import { useNav } from '../../hooks/useNav'
 import { useSelectionText } from '../../hooks/useSelectionText'
+import TopBar from '../layout/TopBar'
 import Button from '../ui/Button'
 import SaveButton from '../ui/SaveButton'
+import Icon from '../ui/Icon'
 import EditableTitle from './EditableTitle'
 import HighlightChip from './HighlightChip'
 import LinkedFromPanel from './LinkedFromPanel'
+import SelectionStar from './SelectionStar'
 import BlockList from '../blocks/BlockList'
 import QuickComposer from '../blocks/QuickComposer'
 
@@ -16,9 +19,10 @@ export default function NotePage() {
   const subjects = useNotebookStore((s2) => s2.subjects)
   const loaded = useNotebookStore((s2) => s2.loaded)
   const undoTick = useNotebookStore((s2) => s2.undoTick)
+  const canUndo = useNotebookStore((s2) => s2.undoStack.length > 0)
   const store = useNotebookStore.getState()
   const { goChapter } = useNav()
-  const { selText, selActive, onMouseUp, clear } = useSelectionText()
+  const { selText, selRect, selActive, onMouseUp, onTouchEnd, clear } = useSelectionText()
   // editing: { blockId } for an existing block, or { draft: kind, initialText }
   // for a new block that is only added to the store when the editor is saved
   const [editing, setEditing] = useState(null)
@@ -60,55 +64,66 @@ export default function NotePage() {
     if (sel) sel.removeAllRanges()
   }
 
+  const ids = { subjectId: subject._id, chapterId: chapter.id, topicId: topic.id }
+
   return (
     <>
-      <div className="nb-toolbar no-print">
-        <span className="nb-burger burger-sm" onClick={() => store.setDrawer(true)}>☰</span>
-        <div className="crumb">{subject.name}  ›  {chapter.name}  ›  {topic.name}</div>
-        <Button
-          variant="primary"
-          onClick={() => store.openScan({ subjectId: subject._id, chapterId: chapter.id, topicId: topic.id })}
-        >
-          📷 Scan into this topic
-        </Button>
-        <Button title="Undo last change" onClick={() => store.undo()}>↩ Undo</Button>
-        <SaveButton />
+      <TopBar
+        crumbs={[
+          { label: subject.name, color: subject.color },
+          { label: chapter.name, onClick: () => goChapter(subject._id, chapter.id) },
+          { label: topic.name },
+        ]}
+      >
         {selActive && (
-          <Button variant="star" onClick={markImportant}>★ Mark important</Button>
+          <Button variant="star" icon="star" className="show-touch" onClick={markImportant}>
+            Mark important
+          </Button>
         )}
-        <Button
-          title="Summarize this chapter"
-          onClick={() => {
-            store.summarizeChapter(subject._id, chapter.id)
-            goChapter(subject._id, chapter.id)
-          }}
-        >
-          ✦ Summarize
+        <Button variant="primary" icon="camera" className="hide-mobile" title="Scan handwritten notes into this topic" onClick={() => store.openScan(ids)}>
+          Scan
         </Button>
-        <Button
-          onClick={() =>
-            store.openExport({ subjectId: subject._id, chapterId: chapter.id, topicId: topic.id }, 'topic')
-          }
-        >
-          ⇩ Export
-        </Button>
-        <Button onClick={() => window.print()}>⎙ Print</Button>
-      </div>
-      <div className="nb-scroll" onMouseUp={onMouseUp}>
-        <div className="nb-page">
+        <span className="toolbar-group">
+          <Button icon="undo" iconOnly disabled={!canUndo} onClick={() => store.undo()}>
+            Undo (⌘Z)
+          </Button>
+          <Button
+            icon="sparkles"
+            iconOnly
+            onClick={() => {
+              store.summarizeChapter(subject._id, chapter.id)
+              goChapter(subject._id, chapter.id)
+            }}
+          >
+            Summarize this chapter
+          </Button>
+          <Button icon="download" iconOnly onClick={() => store.openExport(ids, 'topic')}>
+            Export PDF
+          </Button>
+          <Button icon="printer" iconOnly onClick={() => window.print()}>
+            Print
+          </Button>
+        </span>
+        <SaveButton />
+      </TopBar>
+      <div className="nb-scroll" onMouseUp={onMouseUp} onTouchEnd={onTouchEnd} onScroll={selRect ? clear : undefined}>
+        <article className="nb-page note-page" style={{ '--subject': subject.color }}>
           <EditableTitle topic={topic} />
-          <div style={{ marginBottom: 16 }} />
           <HighlightChip />
           {topic.blocks.length === 0 && !editing && (
             <div className="empty-topic no-print">
-              This page is empty. Start typing below, or paste a table straight from Excel, Google Sheets or a web page.
+              <Icon name="paragraph" size={18} />
+              <span>This page is empty. Start typing below, or paste a table straight from Excel, Google Sheets or a web page.</span>
             </div>
           )}
-          <BlockList topic={topic} editing={editing} onStartEdit={startEdit} onCloseEdit={closeEdit} onKeepAsText={keepAsText} />
-          <LinkedFromPanel topic={topic} />
+          <div className="block-list">
+            <BlockList topic={topic} editing={editing} onStartEdit={startEdit} onCloseEdit={closeEdit} onKeepAsText={keepAsText} />
+          </div>
           <QuickComposer topicId={topic.id} onInsert={onInsert} onPasteTable={onPasteTable} />
-        </div>
+          <LinkedFromPanel topic={topic} />
+        </article>
       </div>
+      {selActive && <SelectionStar rect={selRect} onMark={markImportant} />}
     </>
   )
 }

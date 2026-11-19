@@ -1,15 +1,27 @@
 // Block-editor helpers (values copied from the prototype script).
 import { htmlToEditText } from './richtext'
 
+// Editor header: block-type label + a short how-to hint.
+export const EDIT_LABELS = {
+  text: 'Paragraph',
+  code: 'Code',
+  code2: 'Before / after',
+  math: 'Math',
+  todo: 'To-do',
+  table: 'Table',
+  image: 'Image caption',
+  link: 'Link',
+}
+
 export const EDIT_HINTS = {
-  text: 'EDIT PARAGRAPH — ENTER = NEW LINE · [[LINKS]] ALLOWED',
-  code: 'EDIT CODE',
-  code2: 'EDIT — BEFORE, THEN --- ON ITS OWN LINE, THEN AFTER',
-  math: 'EDIT FORMULA',
-  todo: 'EDIT TASK',
-  table: 'EDIT TABLE — TAB / ENTER TO MOVE · PASTE FROM EXCEL, SHEETS OR MARKDOWN',
-  image: 'EDIT CAPTION',
-  link: 'EDIT — LABEL | URL',
+  text: 'Enter = new line · [[Topic Name]] links a note',
+  code: 'Paste or type code',
+  code2: 'Before, then --- on its own line, then after',
+  math: 'LaTeX, e.g. E = mc^2',
+  todo: 'Describe the task',
+  table: 'Tab / Enter to move · paste from Excel, Sheets or Markdown',
+  image: 'Shown under the image',
+  link: 'Label | URL',
 }
 
 export const editRows = (type) =>
@@ -37,14 +49,15 @@ export function blockEditText(block) {
 }
 
 // ＋ Add block chip menu (image inserts an empty dropzone, no editor).
+// ＋ Add block menu (image inserts an empty dropzone, no editor).
 export const INSERT_DEFS = [
-  { label: '¶ Paragraph', kind: 'text' },
-  { label: '{ } Code', kind: 'code' },
-  { label: '⇄ Before / after', kind: 'code2' },
-  { label: '∑ Math', kind: 'math' },
-  { label: '☑ To-do', kind: 'todo' },
-  { label: '▦ Table', kind: 'table' },
-  { label: '🖼 Image', kind: 'image' },
+  { label: 'Paragraph', kind: 'text', icon: 'paragraph', desc: 'Rich text with links' },
+  { label: 'Code', kind: 'code', icon: 'code', desc: 'Snippet with copy' },
+  { label: 'Before / after', kind: 'code2', icon: 'diff', desc: 'Compare two versions' },
+  { label: 'Math', kind: 'math', icon: 'sigma', desc: 'LaTeX formula' },
+  { label: 'To-do', kind: 'todo', icon: 'todo', desc: 'Checkbox task' },
+  { label: 'Table', kind: 'table', icon: 'table', desc: 'Grid — paste from Sheets' },
+  { label: 'Image', kind: 'image', icon: 'image', desc: 'Upload a picture' },
 ]
 
 // Greyed format hint shown in an empty editor — never inserted as real text.

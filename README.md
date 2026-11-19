@@ -2,7 +2,8 @@
 
 React 19 + Vite single-page app for InkBook, a study notebook organized
 Subject → Chapter → Topic, where each topic is a page of typed blocks. Design decisions are in
-[`../SPEC.md`](../SPEC.md); the visual source of truth is `../Design/Notebook.dc.html`.
+[`../SPEC.md`](../SPEC.md). The UI follows design system v3 (SPEC decision 11): every color is a
+token in `src/index.css`, with a light “paper” theme and a dark “ink” theme.
 
 ## Run locally
 
@@ -27,6 +28,10 @@ npm run lint
 ```
 
 ```bash
+npm test
+```
+
+```bash
 npm run preview
 ```
 
@@ -41,7 +46,7 @@ See `.env.example`.
 ## How it works
 
 - **State** — `src/store/useNotebookStore.js` (Zustand) holds the whole notebook. Edits change
-  it locally and autosave after 1.5 s; 💾 / ⌘S saves right away. Each save sends the full state
+  it locally and autosave after 1.5 s; the save-status pill (Unsaved / Saving… / Saved) or ⌘S saves right away. Each save sends the full state
   with the version it loaded from; if another device saved in between, the server answers 409
   and the client reloads the newer data instead of overwriting it.
 - **Undo** — client-side snapshots, up to 20 (⌘Z outside text fields).
@@ -55,6 +60,16 @@ See `.env.example`.
 - **AI** — 📷 scan wizard (`src/components/scan/ScanWizard.jsx`) and ✦ chapter summaries, via the server's Gemini routes.
 - **Export / print** — `src/utils/exportHtml.js` builds the pages; `src/utils/pdf.js` makes the PDF (jspdf + html2canvas).
 - **API client** — `src/api.js`.
+- **UI kit** — `src/components/ui/` (`Icon` line-icon set, `Button`, `IconButton`, `Modal`,
+  `SaveButton` status pill, `ThemeToggle`) and `src/components/layout/TopBar.jsx` (breadcrumbs + actions).
+- **Shortcuts** — ⌘K search (↑/↓, Enter, Tab cycles filters), ⌘S save, ⌘Z undo, ⌘\ hide the sidebar, Esc closes.
+
+## Tests
+
+Vitest + Testing Library in jsdom (`src/test/`). `renderApp()` mounts the real routes in a
+`MemoryRouter` with a fresh store and a mocked `src/api.js`, over the fixture notebook in
+`fixtures.js`. There is one file per page — dashboard, sidebar, chapter, note, search — plus
+store helpers.
 
 ## Routes
 

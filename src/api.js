@@ -10,7 +10,7 @@ const http = axios.create({ baseURL: BASE_URL })
 // frontend is served from a different origin than the server.
 export function absUrl(url) {
   if (!url) return url
-  return /^https?:\/\//i.test(url) ? url : BASE_URL + url
+  return /^(https?:|data:|blob:)/i.test(url) ? url : BASE_URL + url
 }
 
 export async function fetchState() {

@@ -113,7 +113,10 @@ export default function TableEditor({ initialRows, pastedFrom, onSave, onCancel,
 
   return (
     <div className="block-editor table-editor" onKeyDown={(e) => e.key === 'Escape' && e.stopPropagation()}>
-      <div className="editor-hint">EDIT TABLE · FIRST ROW IS THE HEADER</div>
+      <div className="editor-head">
+        <span className="editor-label">Table</span>
+        <span className="editor-hint">First row is the header · Tab / Enter to move</span>
+      </div>
       {pastedFrom && (
         <div className="table-paste-note">
           ▦ Pasted {filled.length} × {filled[0]?.length || 0} from your clipboard — check it and save.
@@ -170,8 +173,8 @@ export default function TableEditor({ initialRows, pastedFrom, onSave, onCancel,
         <span className="tg-add-row" onClick={() => addCol()}>＋ Column</span>
         <span className="editor-kbd-hint">Tab / Enter to move · ⇧Enter new line · ⌘Enter save</span>
         <span style={{ flex: 1 }} />
-        <button className="editor-cancel" onClick={onCancel}>Cancel</button>
-        <button className="editor-save" onClick={save} disabled={!filled.length}>Save</button>
+        <button type="button" className="mini-btn ghost" onClick={onCancel}>Cancel</button>
+        <button type="button" className="mini-btn primary" onClick={save} disabled={!filled.length}>Save</button>
       </div>
     </div>
   )

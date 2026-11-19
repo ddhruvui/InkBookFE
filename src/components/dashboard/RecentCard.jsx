@@ -1,10 +1,18 @@
-// 210px recent-topic card: subject color dot, topic name, "Subject › Chapter".
-export default function RecentCard({ color, title, path, onOpen }) {
+// Recent-topic card: subject color, topic name, "Subject › Chapter", preview.
+export default function RecentCard({ color, title, path, snippet, onOpen, index = 0 }) {
   return (
-    <div className="recent-card" onClick={onOpen}>
-      <div className="recent-dot" style={{ background: color }} />
+    <button
+      type="button"
+      className="recent-card"
+      style={{ '--subject': color, animationDelay: `${index * 40}ms` }}
+      onClick={onOpen}
+    >
+      <div className="recent-path">
+        <span className="recent-dot" />
+        {path}
+      </div>
       <div className="recent-title">{title}</div>
-      <div className="recent-path">{path}</div>
-    </div>
+      {snippet && <div className="recent-snippet">{snippet}</div>}
+    </button>
   )
 }

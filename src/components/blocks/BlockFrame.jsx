@@ -12,21 +12,29 @@ import DiagramBlock from './DiagramBlock'
 import TableBlock from './TableBlock'
 import ImageBlock from './ImageBlock'
 import ScanBlock from './ScanBlock'
+import Icon from '../ui/Icon'
+
+function Ctrl({ icon, label, onClick, className = '' }) {
+  return (
+    <button type="button" className={`ctrl-chip ${className}`} title={label} aria-label={label} onClick={onClick}>
+      <Icon name={icon} size={14} />
+    </button>
+  )
+}
 
 function BlockControls({ canEdit, onUp, onDown, onEdit, onDelete }) {
   return (
-    <div className="block-controls no-print">
-      <span className="ctrl-chip" title="Move up" onClick={onUp}>↑</span>
-      <span className="ctrl-chip" title="Move down" onClick={onDown}>↓</span>
-      {canEdit && (
-        <span className="ctrl-chip" title="Edit" onClick={onEdit}>✎</span>
-      )}
-      <span className="ctrl-chip danger" title="Delete" onClick={onDelete}>🗑</span>
+    <div className="block-controls no-print" role="toolbar" aria-label="Block actions">
+      <Ctrl icon="arrowUp" label="Move up" onClick={onUp} />
+      <Ctrl icon="arrowDown" label="Move down" onClick={onDown} />
+      {canEdit && <Ctrl icon="pencil" label="Edit" onClick={onEdit} />}
+      <Ctrl icon="trash" label="Delete" className="danger" onClick={onDelete} />
     </div>
   )
 }
 
-// Block content + right-aligned ↑ ↓ ✎ 🗑 control row below it (hover reveal).
+// Block content + ↑ ↓ ✎ 🗑 controls — in the right margin on wide pages,
+// a compact row below the block on narrow ones (hover / focus reveal).
 export default function BlockFrame({ block, topicId, editing, onStartEdit, onCloseEdit, initialText }) {
   const store = useNotebookStore.getState()
 
@@ -58,7 +66,7 @@ export default function BlockFrame({ block, topicId, editing, onStartEdit, onClo
   }
 
   return (
-    <div className="block-frame">
+    <div className={`block-frame type-${block.type} ${editing ? 'editing' : ''}`}>
       <div className="block-body">
         {editing && block.type === 'table' ? (
           <TableEditor
@@ -85,7 +93,7 @@ export default function BlockFrame({ block, topicId, editing, onStartEdit, onClo
           renderBlock()
         )}
       </div>
-      <BlockControls
+      {!editing && <BlockControls
         canEdit={isEditable(block.type)}
         onUp={() => store.moveBlock(topicId, block.id, -1)}
         onDown={() => store.moveBlock(topicId, block.id, 1)}
@@ -94,7 +102,7 @@ export default function BlockFrame({ block, topicId, editing, onStartEdit, onClo
           store.deleteBlock(topicId, block.id)
           onCloseEdit()
         }}
-      />
+      />}
     </div>
   )
 }

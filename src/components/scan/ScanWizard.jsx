@@ -4,6 +4,7 @@ import { useNav } from '../../hooks/useNav'
 import { convertScan, uploadFile } from '../../api'
 import { sanitizeHtml, sanitizeSvg, stripTags } from '../../utils/richtext'
 import Modal from '../ui/Modal'
+import Icon from '../ui/Icon'
 
 // Staged progress texts (prototype: ~1s apart, last one loops until the API resolves).
 const STATUS_MSGS = ['Reading handwriting…', 'Transcribing text…', 'Redrawing diagram as vector…']
@@ -174,11 +175,13 @@ function ScanWizardModal({ dest }) {
   }
 
   return (
-    <Modal onClose={() => store.closeScan()} cardClassName="scanw-card">
-      <div className="scanw-head">
-        <div className="scanw-title">📷 Scan handwritten notes</div>
-        <span className="scanw-close" onClick={() => store.closeScan()}>✕</span>
-      </div>
+    <Modal
+      onClose={() => store.closeScan()}
+      cardClassName="scanw-card"
+      icon="camera"
+      title="Scan handwritten notes"
+      subtitle={stage === 'upload' ? 'Step 1 of 2 · Upload a photo' : converting ? 'Step 2 of 2 · Converting…' : 'Step 2 of 2 · Review & save'}
+    >
 
       {stage === 'upload' && (
         <div className="scanw-stage1">
@@ -196,7 +199,7 @@ function ScanWizardModal({ dest }) {
               startConvert(e.dataTransfer.files?.[0])
             }}
           >
-            <div className="scanw-drop-icon">📄</div>
+            <div className="scanw-drop-icon"><Icon name="upload" size={30} /></div>
             <div className="scanw-drop-title">Drop a scan or photo here</div>
             <div className="scanw-drop-sub">…or click to pick an image (jpg / png / heic)</div>
           </div>
@@ -220,13 +223,13 @@ function ScanWizardModal({ dest }) {
         <>
           <div className="scanw-body">
             <div className="scanw-left">
-              <div className="scanw-col-label">ORIGINAL SCAN</div>
+              <div className="scanw-col-label">Original scan</div>
               <div className="scanw-original">
                 <img src={imgUrl} alt="Original scan" />
               </div>
             </div>
             <div className="scanw-right">
-              <div className="scanw-col-label">✦ AI CONVERTED — CLICK TEXT TO FIX</div>
+              <div className="scanw-col-label"><Icon name="sparkles" size={13} /> AI converted — click text to fix</div>
               {converting && (
                 <div className="scanw-progress">
                   <div className="scanw-spinner" />
@@ -235,31 +238,33 @@ function ScanWizardModal({ dest }) {
               )}
               {!converting && fields && (
                 <div className="scanw-form">
-                  <input className="scanw-title-input" value={fields.title} onChange={setField('title')} />
+                  <input className="scanw-title-input" aria-label="Title" placeholder="Title" value={fields.title} onChange={setField('title')} />
                   <textarea
                     className="scanw-body-input"
-                    rows={4}
+                    aria-label="Body"
+                    placeholder="Body text"
+                    rows={5}
                     value={fields.body}
                     onChange={setField('body')}
                   />
-                  <input className="scanw-formula-input" value={fields.formula} onChange={setField('formula')} />
+                  <input className="scanw-formula-input" aria-label="Formula" placeholder="Formula (optional)" value={fields.formula} onChange={setField('formula')} />
                   {fields.svg.trim() && (
                     <div className="scanw-diagram">
                       <div dangerouslySetInnerHTML={{ __html: sanitizeSvg(fields.svg) }} />
-                      <input className="scanw-caption-input" value={fields.caption} onChange={setField('caption')} />
+                      <input className="scanw-caption-input" aria-label="Diagram caption" placeholder="Caption" value={fields.caption} onChange={setField('caption')} />
                     </div>
                   )}
-                  <input className="scanw-tip-input" value={fields.tip} onChange={setField('tip')} />
-                  <label className="scanw-keep" onClick={() => setKeepOrig((v) => !v)}>
-                    <span className={`scanw-keep-box ${keepOrig ? 'on' : ''}`}>{keepOrig ? '✓' : ''}</span>
+                  <input className="scanw-tip-input" aria-label="Tip" placeholder="Tip (optional)" value={fields.tip} onChange={setField('tip')} />
+                  <button type="button" role="checkbox" aria-checked={keepOrig} className="scanw-keep" onClick={() => setKeepOrig((v) => !v)}>
+                    <span className={`scanw-keep-box ${keepOrig ? 'on' : ''}`}>{keepOrig && <Icon name="check" size={11} strokeWidth={3} />}</span>
                     Keep original scan attached below the note
-                  </label>
+                  </button>
                 </div>
               )}
             </div>
           </div>
           <div className="scanw-footer">
-            <div className="scanw-saveto">SAVE TO</div>
+            <div className="scanw-saveto">Save to</div>
             {noDestination ? (
               <span className="scanw-empty">{noDestination}</span>
             ) : (
@@ -310,9 +315,10 @@ function ScanWizardModal({ dest }) {
               </>
             )}
             <span style={{ flex: 1 }} />
-            <button className="modal-btn-ghost" onClick={() => store.closeScan()}>Discard</button>
+            <button type="button" className="btn ghost lg" onClick={() => store.closeScan()}>Discard</button>
             <button
-              className="modal-btn-primary"
+              type="button"
+              className="btn primary lg"
               disabled={converting || saving || !!noDestination}
               onClick={onSave}
             >

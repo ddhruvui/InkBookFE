@@ -1,27 +1,37 @@
-// ✦ Chapter summary panel — cream card, staged point-by-point reveal (~350ms
-// apart, driven by the store's summarizeChapter action), thinking pulse.
-// items: [{head: topicName} | {point: text}] — a faint uppercase topic header
-// row followed by its "› point" lines, exactly per README §2.
+import Icon from '../ui/Icon'
+
+// ✦ Chapter summary panel — staged point-by-point reveal (~350ms apart,
+// driven by the store's summarizeChapter action) with a thinking pulse.
+// items: [{head: topicName} | {point: text}].
 export default function SummaryPanel({ open, loading, items, onClose }) {
   if (!open) return null
   return (
-    <div className="summary-panel no-print">
+    <section className="summary-panel no-print" aria-live="polite">
       <div className="summary-head">
-        <span className="summary-label">✦ CHAPTER SUMMARY</span>
+        <Icon name="sparkles" size={15} className="summary-icon" />
+        <span className="summary-label">Chapter summary</span>
         {loading && <span className="summary-thinking">thinking…</span>}
         <span style={{ flex: 1 }} />
-        <span className="summary-close" onClick={onClose}>✕</span>
+        <button type="button" className="icon-btn sm" aria-label="Close summary" onClick={onClose}>
+          <Icon name="x" size={14} />
+        </button>
       </div>
+      {loading && items.length === 0 && (
+        <div className="summary-skeleton">
+          <div className="skeleton sk-line" />
+          <div className="skeleton sk-line short" />
+        </div>
+      )}
       {items.map((item, i) =>
         item.head != null ? (
           <div key={i} className="summary-topic">{item.head}</div>
         ) : (
           <div key={i} className="summary-point">
-            <span>›</span>
+            <span className="summary-bullet" />
             <span>{item.point}</span>
           </div>
         )
       )}
-    </div>
+    </section>
   )
 }

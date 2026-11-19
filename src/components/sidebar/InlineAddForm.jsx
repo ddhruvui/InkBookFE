@@ -1,7 +1,7 @@
 import useNotebookStore, { findSubject, findChapter } from '../../store/useNotebookStore'
 import { useNav } from '../../hooks/useNav'
 
-// Inline add form at the bottom of the tree ("NEW CHAPTER IN PHYSICS" etc.).
+// Inline add form at the bottom of the tree ("New chapter in Physics" etc.).
 export default function InlineAddForm() {
   const adding = useNotebookStore((s) => s.adding)
   const addName = useNotebookStore((s) => s.addName)
@@ -11,13 +11,13 @@ export default function InlineAddForm() {
 
   if (!adding) return null
 
-  let label = 'NEW SUBJECT'
+  let label = 'New subject'
   if (adding.type === 'chapter') {
     const subject = findSubject(subjects, adding.subjectId)
-    label = 'NEW CHAPTER IN ' + (subject ? subject.name.toUpperCase() : '')
+    label = 'New chapter in ' + (subject ? subject.name : '')
   } else if (adding.type === 'topic') {
     const found = findChapter(subjects, adding.subjectId, adding.chapterId)
-    label = 'NEW TOPIC IN ' + (found ? found.chapter.name.toUpperCase() : '')
+    label = 'New topic in ' + (found ? found.chapter.name : '')
   }
 
   const confirm = () => {
@@ -31,6 +31,7 @@ export default function InlineAddForm() {
       <input
         autoFocus
         className="add-input"
+        aria-label={label}
         placeholder="Name…"
         value={addName}
         onChange={(e) => store.setAddName(e.target.value)}
@@ -40,8 +41,8 @@ export default function InlineAddForm() {
         }}
       />
       <div className="add-btn-row">
-        <button className="add-btn-add" onClick={confirm}>Add</button>
-        <button className="add-btn-cancel" onClick={() => store.cancelAdding()}>Cancel</button>
+        <button type="button" className="mini-btn ghost" onClick={() => store.cancelAdding()}>Cancel</button>
+        <button type="button" className="mini-btn primary" onClick={confirm}>Add</button>
       </div>
     </div>
   )

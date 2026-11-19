@@ -1,6 +1,7 @@
 import useNotebookStore, { findSubject } from '../store/useNotebookStore'
 import { exportScopedPdf } from '../utils/pdf'
 import Modal from './ui/Modal'
+import Icon from './ui/Icon'
 
 // ⇩ Export as PDF — scope cards (topic / chapter / subject), scoped print,
 // client-side PDF generation (jspdf + html2canvas).
@@ -17,12 +18,12 @@ export default function ExportModal() {
   const topic = chapter && ctx.topicId ? chapter.topics.find((t) => t.id === ctx.topicId) : null
 
   const scopes = [
-    ...(topic ? [{ id: 'topic', icon: '📄', label: 'This topic', sub: topic.name }] : []),
+    ...(topic ? [{ id: 'topic', icon: 'file', label: 'This topic', sub: topic.name }] : []),
     ...(chapter
-      ? [{ id: 'chapter', icon: '📑', label: 'Whole chapter', sub: `${chapter.name} — ${chapter.topics.length} topics` }]
+      ? [{ id: 'chapter', icon: 'files', label: 'Whole chapter', sub: `${chapter.name} — ${chapter.topics.length} topics` }]
       : []),
     ...(subject
-      ? [{ id: 'subject', icon: '📚', label: 'Entire subject', sub: `${subject.name} — ${subject.chapters.length} chapters` }]
+      ? [{ id: 'subject', icon: 'books', label: 'Entire subject', sub: `${subject.name} — ${subject.chapters.length} chapters` }]
       : []),
   ]
 
@@ -52,31 +53,38 @@ export default function ExportModal() {
     (scope === 'topic' ? 'Topic' : scope === 'chapter' ? 'Chapter' : 'Subject') + ' PDF ready'
 
   return (
-    <Modal onClose={() => store.closeExport()} cardClassName="export-card">
-      <div className="modal-title">⇩ Export as PDF</div>
-      <div className="modal-sub">Choose what to include.</div>
-      <div className="scope-list">
+    <Modal
+      onClose={() => store.closeExport()}
+      cardClassName="export-card"
+      icon="download"
+      title="Export as PDF"
+      subtitle="Choose what to include."
+    >
+      <div className="scope-list" role="radiogroup" aria-label="Export scope">
         {scopes.map((sc) => (
-          <div
+          <button
+            type="button"
+            role="radio"
+            aria-checked={scope === sc.id}
             key={sc.id}
             className={`scope-card ${scope === sc.id ? 'selected' : ''}`}
             onClick={() => store.setExportScope(sc.id)}
           >
-            <span className="scope-icon">{sc.icon}</span>
-            <div style={{ flex: 1 }}>
-              <div className="scope-label">{sc.label}</div>
-              <div className="scope-sub">{sc.sub}</div>
-            </div>
-            <span className="scope-mark">{scope === sc.id ? '●' : ''}</span>
-          </div>
+            <span className="scope-icon"><Icon name={sc.icon} size={18} /></span>
+            <span className="scope-text">
+              <span className="scope-label">{sc.label}</span>
+              <span className="scope-sub">{sc.sub}</span>
+            </span>
+            <span className="scope-mark" />
+          </button>
         ))}
       </div>
-      {done && <div className="export-done">✓ {doneMsg}</div>}
+      {done && <div className="export-done"><Icon name="check" size={15} /> {doneMsg}</div>}
       <div className="modal-btn-row">
-        <button className="modal-btn-ghost" onClick={() => store.closeExport()}>Close</button>
-        <button className="modal-btn-outline" onClick={doPrint}>⎙ Print</button>
-        <button className="modal-btn-primary" disabled={busy} onClick={doDownload}>
-          {busy ? 'Generating…' : 'Download PDF'}
+        <button type="button" className="btn ghost lg" onClick={() => store.closeExport()}>Close</button>
+        <button type="button" className="btn secondary lg" onClick={doPrint}><Icon name="printer" size={15} /> Print</button>
+        <button type="button" className="btn primary lg" disabled={busy} onClick={doDownload}>
+          {busy ? <span className="mini-spin" /> : <Icon name="download" size={15} />} {busy ? 'Generating…' : 'Download PDF'}
         </button>
       </div>
     </Modal>

@@ -11,10 +11,25 @@ import ScanWizard from './scan/ScanWizard'
 import Toast from './ui/Toast'
 import PrintView from './PrintView'
 
+// Skeleton while the notebook loads — keeps layout stable instead of a blank pane.
+function LoadingPage() {
+  return (
+    <div className="nb-scroll" aria-busy="true">
+      <div className="nb-page">
+        <div className="skeleton sk-title" />
+        <div className="skeleton sk-line" />
+        <div className="skeleton sk-line" />
+        <div className="skeleton sk-line short" />
+      </div>
+    </div>
+  )
+}
+
 export default function AppShell() {
   const drawerOpen = useNotebookStore((s) => s.drawerOpen)
   const printHtml = useNotebookStore((s) => s.printHtml)
   const loaded = useNotebookStore((s) => s.loaded)
+  const sideCollapsed = useNotebookStore((s) => s.sideCollapsed)
 
   useHotkeys()
   useBeforeUnload()
@@ -30,12 +45,12 @@ export default function AppShell() {
 
   return (
     <>
-      <div className={`nb-app ${printHtml ? 'print-hidden' : ''}`}>
+      <div className={`nb-app ${printHtml ? 'print-hidden' : ''} ${sideCollapsed ? 'side-collapsed' : ''}`}>
         <Sidebar />
         {drawerOpen && (
           <div className="nb-scrim nb-scrim-el no-print" onClick={() => useNotebookStore.getState().setDrawer(false)} />
         )}
-        <div className="nb-main">{loaded ? <Outlet /> : <div className="nb-scroll" />}</div>
+        <main className="nb-main">{loaded ? <Outlet /> : <LoadingPage />}</main>
       </div>
       <MobileBottomBar />
       <SearchPalette />

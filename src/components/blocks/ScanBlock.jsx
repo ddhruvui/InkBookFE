@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import useNotebookStore from '../../store/useNotebookStore'
 import { decorateScanText } from '../../utils/richtext'
 import { absUrl } from '../../api'
+import Icon from '../ui/Icon'
 
 // Original-scan attachment card: 📎 label + italic transcript at -0.4° rotation,
 // with ★ important underlines. Sanitized before dangerouslySetInnerHTML.
@@ -17,7 +18,7 @@ export default function ScanBlock({ block, topicId }) {
   )
   return (
     <div className="scan-block">
-      <div className="scan-label">📎 ORIGINAL SCAN</div>
+      <div className="scan-label"><Icon name="paperclip" size={13} /> Original scan</div>
       {block.payload.imageUrl && (
         <img className="scan-image" src={absUrl(block.payload.imageUrl)} alt="Original scan" />
       )}

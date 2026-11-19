@@ -1,31 +1,38 @@
 import { useRef, useState } from 'react'
-import { EDIT_HINTS, EDIT_PLACEHOLDERS, editRows } from '../../utils/blocks'
+import { EDIT_HINTS, EDIT_LABELS, EDIT_PLACEHOLDERS, editRows } from '../../utils/blocks'
+import Icon from '../ui/Icon'
 
-// B / I / Highlight / [[link]] — wraps the current textarea selection
+// B / I / Highlight / [[link]] / list — wraps the current textarea selection
 // (exact markup from the prototype fmt* handlers).
+function Fmt({ icon, label, onClick, className = '' }) {
+  return (
+    <button
+      type="button"
+      className={`fmt-chip ${className}`}
+      title={label}
+      aria-label={label}
+      onMouseDown={(e) => e.preventDefault()}
+      onClick={onClick}
+    >
+      <Icon name={icon} size={15} />
+    </button>
+  )
+}
+
 function FormatToolbar({ onWrap, onList }) {
   return (
-    <div className="format-bar">
-      <span className="fmt-chip bold" title="Bold selection" onMouseDown={(e) => e.preventDefault()} onClick={() => onWrap('<b>', '</b>')}>
-        B
-      </span>
-      <span className="fmt-chip italic" title="Italicize selection" onMouseDown={(e) => e.preventDefault()} onClick={() => onWrap('<em>', '</em>')}>
-        I
-      </span>
-      <span
-        className="fmt-chip hl"
-        title="Highlight selection"
-        onMouseDown={(e) => e.preventDefault()}
+    <div className="format-bar" role="toolbar" aria-label="Formatting">
+      <Fmt icon="bold" label="Bold selection" onClick={() => onWrap('<b>', '</b>')} />
+      <Fmt icon="italic" label="Italicize selection" onClick={() => onWrap('<em>', '</em>')} />
+      <Fmt
+        icon="highlighter"
+        label="Highlight selection"
+        className="hl"
         onClick={() => onWrap("<span style='background:#f5d98f;padding:0 3px;border-radius:3px'>", '</span>')}
-      >
-        Highlight
-      </span>
-      <span className="fmt-chip link" title="Link to another topic" onMouseDown={(e) => e.preventDefault()} onClick={() => onWrap('[[', ']]')}>
-        [[link]]
-      </span>
-      <span className="fmt-chip" title="Turn selected lines into a bulleted list" onMouseDown={(e) => e.preventDefault()} onClick={onList}>
-        • List
-      </span>
+      />
+      <span className="fmt-sep" />
+      <Fmt icon="wikilink" label="Link to another topic — [[Topic Name]]" onClick={() => onWrap('[[', ']]')} />
+      <Fmt icon="list" label="Turn selected lines into a bulleted list" onClick={onList} />
     </div>
   )
 }
@@ -74,8 +81,12 @@ export default function BlockEditor({ block, initialText, onSave, onCancel }) {
 
   return (
     <div className="block-editor">
-      <div className="editor-hint">{EDIT_HINTS[block.type] || 'EDIT'}</div>
-      {block.type === 'text' && <FormatToolbar onWrap={wrap} onList={toggleList} />}
+      <div className="editor-head">
+        <span className="editor-label">{EDIT_LABELS[block.type] || 'Edit'}</span>
+        <span className="editor-hint">{EDIT_HINTS[block.type] || ''}</span>
+        <span style={{ flex: 1 }} />
+        {block.type === 'text' && <FormatToolbar onWrap={wrap} onList={toggleList} />}
+      </div>
       <textarea
         ref={taRef}
         className="editor-textarea"
@@ -89,8 +100,8 @@ export default function BlockEditor({ block, initialText, onSave, onCancel }) {
       <div className="editor-btn-row">
         <span className="editor-kbd-hint">⌘Enter save · Esc cancel</span>
         <span style={{ flex: 1 }} />
-        <button className="editor-cancel" onClick={onCancel}>Cancel</button>
-        <button className="editor-save" onClick={() => onSave(text)}>Save</button>
+        <button type="button" className="mini-btn ghost" onClick={onCancel}>Cancel</button>
+        <button type="button" className="mini-btn primary" onClick={() => onSave(text)}>Save</button>
       </div>
     </div>
   )

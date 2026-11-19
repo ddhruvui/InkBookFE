@@ -1,8 +1,9 @@
 import useNotebookStore, { findChapter, chapterMarks } from '../../store/useNotebookStore'
 import { useNav } from '../../hooks/useNav'
 import Modal from '../ui/Modal'
+import Icon from '../ui/Icon'
 
-// ⭐ Everything starred across this chapter's topics.
+// Everything starred across this chapter's topics.
 export default function ImportantModal() {
   const importantOpen = useNotebookStore((s) => s.importantOpen)
   const subjects = useNotebookStore((s) => s.subjects)
@@ -17,43 +18,55 @@ export default function ImportantModal() {
   const marks = chapterMarks(subjects, important, subject._id, chapter.id)
 
   return (
-    <Modal onClose={() => store.closeImportant()} overlayClassName="imp-overlay" cardClassName="imp-card">
-      <div className="imp-head">
-        <div className="imp-title">⭐ Important in {subject.name} › {chapter.name}</div>
-        <span className="imp-close" onClick={() => store.closeImportant()}>✕</span>
-      </div>
-      <div className="imp-sub">Everything you starred across this chapter's topics.</div>
+    <Modal
+      onClose={() => store.closeImportant()}
+      overlayClassName="imp-overlay"
+      cardClassName="imp-card"
+      icon="star"
+      title={`Important in ${chapter.name}`}
+      subtitle={`Everything you starred across ${subject.name} › ${chapter.name}.`}
+    >
       <div className="imp-list">
         {marks.map((mark) => (
           <div
             key={mark.id}
             className="imp-item"
+            role="button"
+            tabIndex={0}
             onClick={() => {
               store.closeImportant()
               goTopic(subject._id, chapter.id, mark.topic.id)
             }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') e.currentTarget.click()
+            }}
           >
-            <span className="imp-star">★</span>
-            <div style={{ flex: 1 }}>
+            <Icon name="star" size={15} className="imp-star" style={{ fill: 'currentColor' }} />
+            <div className="imp-main">
               <div className="imp-text">
                 <span className="imp-snippet">{mark.text}</span>
               </div>
               <div className="imp-path">{mark.topic.name}</div>
             </div>
-            <span
-              className="imp-remove"
+            <button
+              type="button"
+              className="icon-btn sm imp-remove"
               title="Remove mark"
+              aria-label="Remove mark"
               onClick={(e) => {
                 e.stopPropagation()
                 store.removeImportant(mark.id)
               }}
             >
-              ✕
-            </span>
+              <Icon name="x" size={14} />
+            </button>
           </div>
         ))}
         {marks.length === 0 && (
-          <div className="imp-empty">Nothing starred in this chapter yet — select text in a note and hit ★.</div>
+          <div className="empty-inline">
+            <Icon name="star" size={18} />
+            Nothing starred in this chapter yet — select text in a note and hit ★.
+          </div>
         )}
       </div>
     </Modal>

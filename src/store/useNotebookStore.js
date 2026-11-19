@@ -113,6 +113,17 @@ export function chapterMarks(subjects, important, subjectId, chapterId) {
     .map((m) => ({ ...m, topic: topicIds.get(m.topicId) }))
 }
 
+// Short plain-text preview of a topic (cards, chapter list).
+export function topicSnippet(topic, max = 140) {
+  // Prose only (text, to-dos, scan transcripts) — code and LaTeX make poor previews.
+  const prose = topic.blocks
+    .filter((b) => b.type === 'text' || b.type === 'todo' || b.type === 'scan')
+    .map((b) => b.payload?.html || b.payload?.text || b.payload?.transcript || '')
+    .join(' ')
+  const text = stripTags(prose).replace(/\[\[([^\]]+)\]\]/g, '$1').replace(/\s+/g, ' ').trim()
+  return text.length > max ? text.slice(0, max).replace(/\s+\S*$/, '').replace(/[\s.,;:–—-]+$/, '') + '…' : text
+}
+
 export function computeRecents(subjects) {
   const out = []
   subjects.forEach((s) =>
@@ -271,6 +282,7 @@ const useNotebookStore = create((set, get) => {
     openSubjects: {},
     openChapters: {},
     drawerOpen: false,
+    sideCollapsed: false, // desktop focus mode (⌘\) — sidebar hidden
     palOpen: false,
     palQ: '',
     palFilter: 'all',
@@ -410,6 +422,9 @@ const useNotebookStore = create((set, get) => {
     },
     setDrawer(open) {
       set({ drawerOpen: open })
+    },
+    toggleSide() {
+      set((st) => ({ sideCollapsed: !st.sideCollapsed }))
     },
     openPalette() {
       set({ palOpen: true, palQ: '', drawerOpen: false })

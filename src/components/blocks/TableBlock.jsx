@@ -1,6 +1,7 @@
 import useNotebookStore from '../../store/useNotebookStore'
 import { highlightHtml, sanitizeHtml } from '../../utils/richtext'
 import { rowsToTsv } from '../../utils/table'
+import Icon from '../ui/Icon'
 
 const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
@@ -34,13 +35,13 @@ export default function TableBlock({ block, onStartEdit }) {
   return (
     <div className="table-card">
       <div className="table-head no-print">
-        <span>▦ {rows.length} × {width} · click a cell to copy</span>
+        <span className="table-meta"><Icon name="table" size={13} /> {rows.length} × {width} · click a cell to copy</span>
         <span className="table-head-actions">
-          <button className="copy-btn" title="Copy as tab-separated — pastes into Sheets / Excel" onClick={() => copy(rowsToTsv(rows), '⧉ Table copied — paste into Sheets, Excel or another note')}>
-            ⧉ Copy
+          <button type="button" className="copy-btn" title="Copy as tab-separated — pastes into Sheets / Excel" onClick={() => copy(rowsToTsv(rows), '⧉ Table copied — paste into Sheets, Excel or another note')}>
+            <Icon name="copy" size={13} /> Copy
           </button>
           {onStartEdit && (
-            <button className="copy-btn" onClick={onStartEdit}>✎ Edit</button>
+            <button type="button" className="copy-btn" onClick={onStartEdit}><Icon name="pencil" size={13} /> Edit</button>
           )}
         </span>
       </div>

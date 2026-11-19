@@ -1,7 +1,7 @@
-export default function Kbd({ children, ...props }) {
+export default function Kbd({ children, className = '', ...props }) {
   return (
-    <span className="kbd" {...props}>
+    <kbd className={`kbd ${className}`} {...props}>
       {children}
-    </span>
+    </kbd>
   )
 }
