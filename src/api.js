@@ -1,12 +1,12 @@
 import axios from 'axios'
 
-// Backend base URL. Empty in dev — Vite proxies /api and /uploads to the
+// Backend base URL. Empty in dev — Vite proxies /api to the
 // server (see vite.config.js). In production (Render) set VITE_API_URL.
 const BASE_URL = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '')
 
 const http = axios.create({ baseURL: BASE_URL })
 
-// Server-relative paths (/uploads/…) need the base prepended when the
+// Server-relative image paths (legacy, pre-ImageKit) need the base prepended when the
 // frontend is served from a different origin than the server.
 export function absUrl(url) {
   if (!url) return url
