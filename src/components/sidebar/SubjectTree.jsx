@@ -41,15 +41,17 @@ function RowAction({ icon, label, onClick }) {
   )
 }
 
+// chapter is null for a topic that sits directly in the subject.
 function TopicRow({ subject, chapter, topic }) {
   const menu = useNotebookStore((s) => s.menu)
   const store = useNotebookStore.getState()
   const { goTopic } = useNav()
   const current = useCurrentRef()
-  const ids = { subjectId: subject._id, chapterId: chapter.id, topicId: topic.id }
+  const chapterId = chapter ? chapter.id : null
+  const ids = { subjectId: subject._id, chapterId, topicId: topic.id }
   const active = current.topicId === topic.id
   const menuOpen = menuMatches(menu, 'topic', ids)
-  const open = () => goTopic(subject._id, chapter.id, topic.id)
+  const open = () => goTopic(subject._id, chapterId, topic.id)
   return (
     <div>
       <div
@@ -129,13 +131,19 @@ function SubjectRow({ subject }) {
   const menu = useNotebookStore((s) => s.menu)
   const open = useNotebookStore((s) => !!s.openSubjects[subject._id])
   const store = useNotebookStore.getState()
+  const current = useCurrentRef()
   const ids = { subjectId: subject._id, chapterId: null, topicId: null }
+  const active = current.subjectId === subject._id && !current.chapterId && !current.topicId
   const menuOpen = menuMatches(menu, 'subject', ids)
   const toggle = () => store.toggleSubjectOpen(subject._id)
+  const topics = subject.topics || []
+  const empty = subject.chapters.length === 0 && topics.length === 0
+  const addChapter = () => store.startAdding({ type: 'chapter', subjectId: subject._id })
+  const addTopic = () => store.startAdding({ type: 'topic', subjectId: subject._id, chapterId: null })
   return (
     <div className="tree-subject" style={{ '--subject': subject.color }}>
       <div
-        className={`tree-row subject-row ${menuOpen ? 'menu-open' : ''}`}
+        className={`tree-row subject-row ${active ? 'active' : ''} ${menuOpen ? 'menu-open' : ''}`}
         role="treeitem"
         aria-expanded={open}
         tabIndex={0}
@@ -148,30 +156,31 @@ function SubjectRow({ subject }) {
         <span className="subject-dot" />
         <span className="subject-name">{subject.name}</span>
         <span className="row-actions">
-          <RowAction
-            icon="plus"
-            label={`Add chapter to “${subject.name}”`}
-            onClick={() => store.startAdding({ type: 'chapter', subjectId: subject._id })}
-          />
+          <RowAction icon="plus" label={`Add chapter to “${subject.name}”`} onClick={addChapter} />
+          <RowAction icon="file" label={`Add topic to “${subject.name}”`} onClick={addTopic} />
           <RowAction icon="more" label={`Manage “${subject.name}”`} onClick={() => store.toggleMenu({ type: 'subject', ...ids })} />
         </span>
       </div>
       {menuOpen && <NodeContextMenu type="subject" ids={ids} name={subject.name} color={subject.color} />}
-      {open && subject.chapters.length > 0 && (
+      {open && !empty && (
         <div className="tree-children" role="group">
           {subject.chapters.map((chapter) => (
             <ChapterRow key={chapter.id} subject={subject} chapter={chapter} />
           ))}
+          {topics.map((topic) => (
+            <TopicRow key={topic.id} subject={subject} chapter={null} topic={topic} />
+          ))}
         </div>
       )}
-      {open && subject.chapters.length === 0 && (
-        <button
-          type="button"
-          className="tree-hint"
-          onClick={() => store.startAdding({ type: 'chapter', subjectId: subject._id })}
-        >
-          <Icon name="plus" size={13} /> Add a first chapter
-        </button>
+      {open && empty && (
+        <>
+          <button type="button" className="tree-hint" onClick={addChapter}>
+            <Icon name="plus" size={13} /> Add a first chapter
+          </button>
+          <button type="button" className="tree-hint" onClick={addTopic}>
+            <Icon name="file" size={13} /> Add a topic
+          </button>
+        </>
       )}
     </div>
   )

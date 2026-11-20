@@ -16,8 +16,10 @@ export default function InlineAddForm() {
     const subject = findSubject(subjects, adding.subjectId)
     label = 'New chapter in ' + (subject ? subject.name : '')
   } else if (adding.type === 'topic') {
-    const found = findChapter(subjects, adding.subjectId, adding.chapterId)
-    label = 'New topic in ' + (found ? found.chapter.name : '')
+    // No chapterId → the topic goes directly in the subject.
+    const found = adding.chapterId ? findChapter(subjects, adding.subjectId, adding.chapterId) : null
+    const subject = found ? null : findSubject(subjects, adding.subjectId)
+    label = 'New topic in ' + (found ? found.chapter.name : subject ? subject.name : '')
   }
 
   const confirm = () => {

@@ -12,18 +12,26 @@ const uuid = () => crypto.randomUUID()
 const now = () => new Date().toISOString()
 const byPosition = (a, b) => (a.position ?? 0) - (b.position ?? 0)
 
+// Topics live either in a chapter (chapter.topics) or directly in a subject
+// (subject.topics — no chapter). Both lists hold the same topic shape.
+function normalizeTopics(topics) {
+  const list = (topics || []).slice().sort(byPosition)
+  list.forEach((t, ti) => {
+    t.position = ti
+    t.blocks = t.blocks || []
+  })
+  return list
+}
+
 function normalize(subjects) {
   const list = (subjects || []).slice().sort(byPosition)
   list.forEach((s, si) => {
     s.position = si
+    s.topics = normalizeTopics(s.topics)
     s.chapters = (s.chapters || []).slice().sort(byPosition)
     s.chapters.forEach((c, ci) => {
       c.position = ci
-      c.topics = (c.topics || []).slice().sort(byPosition)
-      c.topics.forEach((t, ti) => {
-        t.position = ti
-        t.blocks = t.blocks || []
-      })
+      c.topics = normalizeTopics(c.topics)
     })
   })
   return list
@@ -47,27 +55,55 @@ export function findChapter(subjects, subjectId, chapterId) {
   return chapter ? { subject, chapter } : null
 }
 
+// The topic list a topic belongs to: the chapter's when chapterId is set,
+// otherwise the subject's own (chapter-less) topics. null if not found.
+export function topicList(subjects, subjectId, chapterId) {
+  if (chapterId) {
+    const found = findChapter(subjects, subjectId, chapterId)
+    return found ? found.chapter.topics : null
+  }
+  const subject = findSubject(subjects, subjectId)
+  return subject ? (subject.topics ||= []) : null
+}
+
+// Every topic in the notebook as { subject, chapter, topic } — chapter is null
+// for topics that sit directly in a subject. Subject topics come after its chapters.
+export function allTopics(subjects) {
+  const out = []
+  subjects.forEach((subject) => {
+    subject.chapters.forEach((chapter) => chapter.topics.forEach((topic) => out.push({ subject, chapter, topic })))
+    ;(subject.topics || []).forEach((topic) => out.push({ subject, chapter: null, topic }))
+  })
+  return out
+}
+
+// chapterId null/undefined → a topic directly in the subject.
 export function findTopic(subjects, subjectId, chapterId, topicId) {
-  const found = findChapter(subjects, subjectId, chapterId)
-  const topic = found ? found.chapter.topics.find((t) => t.id === topicId) : null
-  return topic ? { ...found, topic } : null
+  const subject = findSubject(subjects, subjectId)
+  if (!subject) return null
+  const chapter = chapterId ? subject.chapters.find((c) => c.id === chapterId) || null : null
+  if (chapterId && !chapter) return null
+  const topic = (chapter ? chapter.topics : subject.topics || []).find((t) => t.id === topicId)
+  return topic ? { subject, chapter, topic } : null
 }
 
 export function findTopicById(subjects, topicId) {
-  for (const subject of subjects)
-    for (const chapter of subject.chapters)
-      for (const topic of chapter.topics)
-        if (topic.id === topicId) return { subject, chapter, topic }
-  return null
+  return allTopics(subjects).find((r) => r.topic.id === topicId) || null
 }
 
 export function findTopicByName(subjects, name) {
   const q = String(name || '').toLowerCase()
-  for (const subject of subjects)
-    for (const chapter of subject.chapters)
-      for (const topic of chapter.topics)
-        if (topic.name.toLowerCase() === q) return { subject, chapter, topic }
-  return null
+  return allTopics(subjects).find((r) => r.topic.name.toLowerCase() === q) || null
+}
+
+// "Subject › Chapter", or just "Subject" for a topic with no chapter.
+export function topicPathLabel({ subject, chapter }) {
+  return chapter ? subject.name + ' › ' + chapter.name : subject.name
+}
+
+// Number of topics in a subject, including those inside its chapters.
+export function subjectTopicCount(subject) {
+  return subject.chapters.reduce((n, c) => n + c.topics.length, (subject.topics || []).length)
 }
 
 /* ── Derived data (client-side, over unsaved store — like the prototype) ── */
@@ -125,12 +161,7 @@ export function topicSnippet(topic, max = 140) {
 }
 
 export function computeRecents(subjects) {
-  const out = []
-  subjects.forEach((s) =>
-    s.chapters.forEach((c) =>
-      c.topics.forEach((t) => out.push({ subject: s, chapter: c, topic: t }))
-    )
-  )
+  const out = allTopics(subjects)
   out.sort((a, b) => String(b.topic.updatedAt || '').localeCompare(String(a.topic.updatedAt || '')))
   return out
 }
@@ -139,15 +170,10 @@ export function linkedFrom(subjects, topic) {
   const out = []
   if (!topic) return out
   const needle = '[[' + topic.name + ']]'
-  subjects.forEach((s) =>
-    s.chapters.forEach((c) =>
-      c.topics.forEach((t) => {
-        if (t === topic) return
-        if (t.blocks.some((b) => b.type === 'text' && (b.payload?.html || '').includes(needle)))
-          out.push({ subject: s, chapter: c, topic: t })
-      })
-    )
-  )
+  allTopics(subjects).forEach((r) => {
+    if (r.topic === topic) return
+    if (r.topic.blocks.some((b) => b.type === 'text' && (b.payload?.html || '').includes(needle))) out.push(r)
+  })
   return out
 }
 
@@ -162,36 +188,33 @@ export function searchNotes(subjects, important, q, filter, currentSubjectId) {
       if (!found) return
       out.push({
         title: '★ ' + m.text.slice(0, 60),
-        path: found.subject.name + ' › ' + found.chapter.name + ' › ' + found.topic.name,
+        path: topicPathLabel(found) + ' › ' + found.topic.name,
         snippet: 'marked important',
         subjectId: found.subject._id,
-        chapterId: found.chapter.id,
+        chapterId: found.chapter ? found.chapter.id : null,
         topicId: found.topic.id,
         hl: '',
       })
     })
     return out
   }
-  subjects.forEach((s) =>
-    s.chapters.forEach((c) =>
-      c.topics.forEach((t) => {
-        if (filter === 'subject' && currentSubjectId && s._id !== currentSubjectId) return
-        if (filter === 'scans' && !t.blocks.some((b) => b.type === 'scan')) return
-        const body = searchBody(t)
-        if (ql && !(t.name.toLowerCase().includes(ql) || body.toLowerCase().includes(ql))) return
-        const i = ql ? body.toLowerCase().indexOf(ql) : -1
-        out.push({
-          title: t.name,
-          path: s.name + ' › ' + c.name,
-          snippet: i >= 0 ? '…' + body.slice(Math.max(0, i - 20), i + 60) + '…' : body.slice(0, 70) + '…',
-          subjectId: s._id,
-          chapterId: c.id,
-          topicId: t.id,
-          hl: ql,
-        })
-      })
-    )
-  )
+  allTopics(subjects).forEach((r) => {
+    const { subject: s, chapter: c, topic: t } = r
+    if (filter === 'subject' && currentSubjectId && s._id !== currentSubjectId) return
+    if (filter === 'scans' && !t.blocks.some((b) => b.type === 'scan')) return
+    const body = searchBody(t)
+    if (ql && !(t.name.toLowerCase().includes(ql) || body.toLowerCase().includes(ql))) return
+    const i = ql ? body.toLowerCase().indexOf(ql) : -1
+    out.push({
+      title: t.name,
+      path: topicPathLabel(r),
+      snippet: i >= 0 ? '…' + body.slice(Math.max(0, i - 20), i + 60) + '…' : body.slice(0, 70) + '…',
+      subjectId: s._id,
+      chapterId: c ? c.id : null,
+      topicId: t.id,
+      hl: ql,
+    })
+  })
   return out.slice(0, 8)
 }
 
@@ -513,6 +536,7 @@ const useNotebookStore = create((set, get) => {
       set({ adding: null })
     },
     // Returns {type, subjectId, chapterId, topicId?} so callers can navigate.
+    // A topic add with no chapterId creates the topic directly in the subject.
     confirmAdd() {
       const { adding, addName } = get()
       const name = addName.trim()
@@ -527,7 +551,7 @@ const useNotebookStore = create((set, get) => {
       } else {
         const topic = get().addTopic(adding.subjectId, adding.chapterId, name)
         if (topic)
-          result = { type: 'topic', subjectId: adding.subjectId, chapterId: adding.chapterId, topicId: topic.id }
+          result = { type: 'topic', subjectId: adding.subjectId, chapterId: adding.chapterId || null, topicId: topic.id }
       }
       set({ adding: null, addName: '' })
       return result
@@ -542,14 +566,14 @@ const useNotebookStore = create((set, get) => {
       const used = new Set(subjects.map((s) => s.color))
       const color =
         SUBJECT_PALETTE.find((c) => !used.has(c)) || SUBJECT_PALETTE[subjects.length % SUBJECT_PALETTE.length]
-      const subject = { _id: uuid(), kind: 'subject', name, color, position: subjects.length, chapters: [] }
+      const subject = { _id: uuid(), kind: 'subject', name, color, position: subjects.length, chapters: [], topics: [] }
       set((st) => ({
         subjects: [...st.subjects, subject],
         dirty: true,
         rev: st.rev + 1,
         openSubjects: { ...st.openSubjects, [subject._id]: true },
       }))
-      get().toast('✓ Subject "' + name + '" added — add a chapter with ＋')
+      get().toast('✓ Subject "' + name + '" added — add a chapter or topic with ＋')
       return subject
     },
 
@@ -568,20 +592,21 @@ const useNotebookStore = create((set, get) => {
       return chapter
     },
 
+    // chapterId null → the topic goes directly in the subject.
     addTopic(subjectId, chapterId, name) {
       let topic = null
       commit((st) => {
-        const found = findChapter(st.subjects, subjectId, chapterId)
-        if (!found) return
+        const list = topicList(st.subjects, subjectId, chapterId)
+        if (!list) return
         topic = {
           id: uuid(),
           name,
-          position: found.chapter.topics.length,
+          position: list.length,
           createdAt: now(),
           updatedAt: now(),
           blocks: [{ id: uuid(), type: 'text', payload: { html: '' } }],
         }
-        found.chapter.topics.push(topic)
+        list.push(topic)
       })
       if (topic) {
         get().openPath(subjectId, chapterId)
@@ -613,8 +638,8 @@ const useNotebookStore = create((set, get) => {
           const subject = findSubject(st.subjects, ids.subjectId)
           if (subject) swap(subject.chapters, subject.chapters.findIndex((c) => c.id === ids.chapterId))
         } else {
-          const found = findChapter(st.subjects, ids.subjectId, ids.chapterId)
-          if (found) swap(found.chapter.topics, found.chapter.topics.findIndex((t) => t.id === ids.topicId))
+          const list = topicList(st.subjects, ids.subjectId, ids.chapterId)
+          if (list) swap(list, list.findIndex((t) => t.id === ids.topicId))
         }
       })
       set({ deleteArm: false })
@@ -635,11 +660,11 @@ const useNotebookStore = create((set, get) => {
             renumber(subject.chapters)
           }
         } else {
-          const found = findChapter(st.subjects, ids.subjectId, ids.chapterId)
-          if (found) {
-            const i = found.chapter.topics.findIndex((t) => t.id === ids.topicId)
-            if (i >= 0) found.chapter.topics.splice(i, 1)
-            renumber(found.chapter.topics)
+          const list = topicList(st.subjects, ids.subjectId, ids.chapterId)
+          if (list) {
+            const i = list.findIndex((t) => t.id === ids.topicId)
+            if (i >= 0) list.splice(i, 1)
+            renumber(list)
           }
         }
       })
@@ -672,6 +697,7 @@ const useNotebookStore = create((set, get) => {
             _id: uuid(),
             name: src.name + ' (copy)',
             chapters: (src.chapters || []).map(cloneChapter),
+            topics: (src.topics || []).map(cloneTopic),
           }
           st.subjects.splice(i + 1, 0, copy)
           renumber(st.subjects)
@@ -687,15 +713,15 @@ const useNotebookStore = create((set, get) => {
           renumber(subject.chapters)
           copiedName = subject.chapters[i].name
         } else {
-          const found = findChapter(st.subjects, ids.subjectId, ids.chapterId)
-          if (!found) return
-          const i = found.chapter.topics.findIndex((t) => t.id === ids.topicId)
+          const list = topicList(st.subjects, ids.subjectId, ids.chapterId)
+          if (!list) return
+          const i = list.findIndex((t) => t.id === ids.topicId)
           if (i < 0) return
-          const copy = cloneTopic(found.chapter.topics[i])
+          const copy = cloneTopic(list[i])
           copy.name += ' (copy)'
-          found.chapter.topics.splice(i + 1, 0, copy)
-          renumber(found.chapter.topics)
-          copiedName = found.chapter.topics[i].name
+          list.splice(i + 1, 0, copy)
+          renumber(list)
+          copiedName = list[i].name
         }
       })
       set({ menu: null, deleteArm: false })
@@ -822,7 +848,8 @@ const useNotebookStore = create((set, get) => {
         dirty: true,
         rev: st.rev + 1,
       }))
-      get().toast('★ Marked important — collected in this chapter')
+      const inChapter = !!findTopicById(get().subjects, topicId)?.chapter
+      get().toast(inChapter ? '★ Marked important — collected in this chapter' : '★ Marked important')
     },
 
     // Click on an underlined ★ snippet in a note: remove the matching mark.
@@ -850,15 +877,16 @@ const useNotebookStore = create((set, get) => {
     },
 
     // Appends the reviewed scan blocks to an existing topic (topicId set) or
-    // creates a new topic (newName). Returns {subjectId, chapterId, topicId}.
-    saveScanToTopic({ subjectId, chapterId, topicId, newName, blocks }) {
+    // creates a new topic (newName) in the chapter — or directly in the subject
+    // when chapterId is null. Returns {subjectId, chapterId, topicId}.
+    saveScanToTopic({ subjectId, chapterId = null, topicId, newName, blocks }) {
       let result = null
       commit((st) => {
-        const found = findChapter(st.subjects, subjectId, chapterId)
-        if (!found || !blocks.length) return
+        const list = topicList(st.subjects, subjectId, chapterId)
+        if (!list || !blocks.length) return
         const withIds = blocks.map((b) => ({ id: uuid(), ...b }))
         if (topicId) {
-          const topic = found.chapter.topics.find((t) => t.id === topicId)
+          const topic = list.find((t) => t.id === topicId)
           if (!topic) return
           topic.blocks.push(...withIds)
           touch(topic)
@@ -867,12 +895,12 @@ const useNotebookStore = create((set, get) => {
           const topic = {
             id: uuid(),
             name: newName,
-            position: found.chapter.topics.length,
+            position: list.length,
             createdAt: now(),
             updatedAt: now(),
             blocks: withIds,
           }
-          found.chapter.topics.push(topic)
+          list.push(topic)
           result = { subjectId, chapterId, topicId: topic.id }
         }
       })

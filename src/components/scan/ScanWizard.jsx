@@ -11,6 +11,9 @@ const STATUS_MSGS = ['Reading handwriting…', 'Transcribing text…', 'Redrawin
 
 const MAX_BYTES = 10 * 1024 * 1024
 
+// Chapter-select value for "save directly in the subject" (no chapter).
+const SUBJECT_LEVEL = '__subject__'
+
 const escapeHtml = (s) =>
   String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
@@ -56,18 +59,22 @@ function ScanWizardModal({ dest }) {
   const [keepOrig, setKeepOrig] = useState(true)
   const [saving, setSaving] = useState(false)
 
-  // Destination (pre-targeted from the note toolbar 📷; falls back to first nodes).
+  // Destination (pre-targeted from the page the 📷 was opened on; falls back to
+  // first nodes). A subject given without a chapter (subject page, or a topic
+  // that sits directly in the subject) targets the subject itself.
   const [destS, setDestS] = useState(dest.subjectId || subjects[0]?._id || '')
-  const [destC, setDestC] = useState(dest.chapterId || '')
+  const [destC, setDestC] = useState(dest.chapterId || (dest.subjectId ? SUBJECT_LEVEL : ''))
   const [destT, setDestT] = useState(dest.topicId || 'new')
   const [destName, setDestName] = useState('')
 
   const subject = findSubject(subjects, destS) || subjects[0] || null
-  const chapter = subject
-    ? subject.chapters.find((c) => c.id === destC) || subject.chapters[0] || null
-    : null
-  const topic =
-    chapter && destT !== 'new' ? chapter.topics.find((t) => t.id === destT) || null : null
+  // null chapter → save directly in the subject (also the only option when it has no chapters).
+  const chapter =
+    subject && destC !== SUBJECT_LEVEL
+      ? subject.chapters.find((c) => c.id === destC) || subject.chapters[0] || null
+      : null
+  const destTopics = chapter ? chapter.topics : subject?.topics || []
+  const topic = subject && destT !== 'new' ? destTopics.find((t) => t.id === destT) || null : null
 
   const fileRef = useRef(null)
   const scanFileRef = useRef(null) // original File — only uploaded on save when keepOrig
@@ -131,11 +138,7 @@ function ScanWizardModal({ dest }) {
 
   const setField = (k) => (e) => setFields((f) => ({ ...f, [k]: e.target.value }))
 
-  const noDestination = !subject
-    ? 'Create a subject first — the wizard needs somewhere to save.'
-    : !chapter
-      ? `Add a chapter to ${subject.name} first.`
-      : ''
+  const noDestination = !subject ? 'Create a subject first — the wizard needs somewhere to save.' : ''
 
   const onSave = async () => {
     if (converting || saving || !fields || noDestination) return
@@ -163,7 +166,7 @@ function ScanWizardModal({ dest }) {
     if (!blocks.length) return store.toast('Nothing to save — all fields are empty')
     const result = store.saveScanToTopic({
       subjectId: subject._id,
-      chapterId: chapter.id,
+      chapterId: chapter ? chapter.id : null,
       topicId: topic ? topic.id : null,
       newName: destName.trim() || fields.title.trim() || 'Scanned note',
       blocks,
@@ -171,7 +174,7 @@ function ScanWizardModal({ dest }) {
     if (!result) return
     store.closeScan()
     goTopic(result.subjectId, result.chapterId, result.topicId)
-    store.toast(`✓ Saved to ${subject.name} › ${chapter.name}`)
+    store.toast(`✓ Saved to ${subject.name}${chapter ? ' › ' + chapter.name : ''}`)
   }
 
   return (
@@ -274,7 +277,7 @@ function ScanWizardModal({ dest }) {
                   value={subject._id}
                   onChange={(e) => {
                     setDestS(e.target.value)
-                    setDestC(findSubject(subjects, e.target.value)?.chapters[0]?.id || '')
+                    setDestC(findSubject(subjects, e.target.value)?.chapters[0]?.id || SUBJECT_LEVEL)
                     setDestT('new')
                   }}
                 >
@@ -284,7 +287,8 @@ function ScanWizardModal({ dest }) {
                 </select>
                 <select
                   className="scanw-select"
-                  value={chapter.id}
+                  aria-label="Chapter"
+                  value={chapter ? chapter.id : SUBJECT_LEVEL}
                   onChange={(e) => {
                     setDestC(e.target.value)
                     setDestT('new')
@@ -293,6 +297,7 @@ function ScanWizardModal({ dest }) {
                   {subject.chapters.map((c) => (
                     <option key={c.id} value={c.id}>{c.name}</option>
                   ))}
+                  <option value={SUBJECT_LEVEL}>No chapter (in {subject.name})</option>
                 </select>
                 <select
                   className="scanw-select"
@@ -300,7 +305,7 @@ function ScanWizardModal({ dest }) {
                   onChange={(e) => setDestT(e.target.value)}
                 >
                   <option value="new">＋ New topic</option>
-                  {chapter.topics.map((t) => (
+                  {destTopics.map((t) => (
                     <option key={t.id} value={t.id}>Append to: {t.name}</option>
                   ))}
                 </select>

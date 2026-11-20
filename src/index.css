@@ -263,6 +263,7 @@ input::placeholder, textarea::placeholder { color: var(--ink-4); }
 button.tree-chev:hover { background: var(--hover-strong); color: var(--ink); }
 .subject-chev { color: var(--subject); }
 .subject-row { margin-top: 2px; }
+.subject-row.active { background: var(--hover-strong); }
 .subject-dot { width: 9px; height: 9px; border-radius: 3px; background: var(--subject); flex: none; }
 .subject-name { font-size: 14px; font-weight: 600; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .chapter-name { font-size: 13.5px; font-weight: 500; flex: 1; min-width: 0; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -471,6 +472,14 @@ button.crumb:hover { background: var(--hover-strong); color: var(--ink); }
   font-family: var(--font-sans); font-size: 13.5px; font-weight: 600;
 }
 .add-topic-card:hover { border-color: var(--accent); color: var(--accent); background: var(--hover); }
+
+/* ── Subject page ── */
+.subject-section + .subject-section { margin-top: 32px; }
+.topic-card-icon { color: var(--subject, var(--ink-3)); margin-top: 4px; flex: none; }
+.chapter-chip.topic-chip { padding-right: 11px; }
+.chapter-chip.topic-chip .ic { color: var(--ink-4); }
+.subject-card-name.link { background: none; border: none; padding: 0; color: inherit; font-family: inherit; cursor: pointer; text-align: left; }
+.subject-card-name.link:hover { color: var(--subject); }
 
 /* Summary panel (AI) */
 .summary-panel {

@@ -20,7 +20,8 @@ function Item({ icon, children, onClick, className = '' }) {
   )
 }
 
-// Inline dropdown card for subject / chapter / topic ⋯ menus.
+// Inline dropdown card for subject / chapter / topic ⋯ menus (a topic may sit
+// in a chapter or directly in a subject — ids.chapterId is null then).
 // items: rename + (chapter: important/summarize) + (subject/chapter: export/print)
 // + (subject: colors) + duplicate + move up/down + armed delete confirm.
 export default function NodeContextMenu({ type, ids, name, color }) {
@@ -28,7 +29,7 @@ export default function NodeContextMenu({ type, ids, name, color }) {
   const deleteArm = useNotebookStore((s) => s.deleteArm)
   const renameVal = useNotebookStore((s) => s.renameVal)
   const store = useNotebookStore.getState()
-  const { goChapter } = useNav()
+  const { goChapter, goSubject } = useNav()
 
   const onRenameKey = (e) => {
     if (e.key === 'Enter') store.applyRename()
@@ -64,6 +65,11 @@ export default function NodeContextMenu({ type, ids, name, color }) {
       ) : (
         <>
           <Item icon="pencil" onClick={() => store.startRename(name)}>Rename</Item>
+          {type === 'subject' && (
+            <Item icon="books" onClick={() => goSubject(ids.subjectId)}>
+              Open overview
+            </Item>
+          )}
           {type === 'chapter' && (
             <>
               <Item

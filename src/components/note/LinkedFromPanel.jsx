@@ -20,11 +20,11 @@ export default function LinkedFromPanel({ topic }) {
             key={l.topic.id}
             className="linked-from-link"
             style={{ '--subject': l.subject.color }}
-            onClick={() => goTopic(l.subject._id, l.chapter.id, l.topic.id)}
+            onClick={() => goTopic(l.subject._id, l.chapter ? l.chapter.id : null, l.topic.id)}
           >
             <span className="label-dot" />
             {l.topic.name}
-            <span className="linked-from-path">{l.chapter.name}</span>
+            <span className="linked-from-path">{l.chapter ? l.chapter.name : l.subject.name}</span>
           </button>
         ))}
       </div>

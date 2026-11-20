@@ -58,16 +58,26 @@ function chapterFlowHtml(subject, chapter) {
   )
 }
 
+// Topics that sit directly in the subject (no chapter) — printed after its chapters.
+function subjectTopicsFlowHtml(subject) {
+  const topics = subject.topics || []
+  return (
+    `<h1 style="font-size:24px;margin:0 0 4px">${esc(subject.name)} › Topics</h1>` +
+    `<div style="font-size:11px;color:#9a875f;font-family:sans-serif;margin:0 0 18px">${topics.length} topics not in a chapter · printed from Inkbook</div>` +
+    topics.map(topicHtml).join('')
+  )
+}
+
 // Scoped print view (matches prototype compileHtml exactly for chapter/subject).
 export function compilePrintHtml(subjects, scope, ctx) {
   const subject = subjects.find((s) => s._id === ctx.subjectId)
   if (!subject) return ''
   if (scope === 'subject') {
+    const wrap = (html) => `<div style="page-break-before:auto;margin:0 0 30px">${html}</div>`
     return (
       `<h1 style="font-size:28px;margin:0 0 18px">${esc(subject.name)}</h1>` +
-      subject.chapters
-        .map((c) => `<div style="page-break-before:auto;margin:0 0 30px">${chapterFlowHtml(subject, c)}</div>`)
-        .join('')
+      subject.chapters.map((c) => wrap(chapterFlowHtml(subject, c))).join('') +
+      ((subject.topics || []).length ? wrap(subjectTopicsFlowHtml(subject)) : '')
     )
   }
   const chapter = subject.chapters.find((c) => c.id === ctx.chapterId)
@@ -97,8 +107,20 @@ function pdfChapterTitlePage(subject, chapter) {
   )
 }
 
+// Divider before the subject's own topics (those not in any chapter).
+function pdfSubjectTopicsTitlePage(subject) {
+  return (
+    `<div style="${SECTION_STYLE};padding-top:120px">` +
+    `<div style="${LABEL_STYLE}">Topics</div>` +
+    `<h1 style="font-size:30px;margin:6px 0 12px">${esc(subject.name)}</h1>` +
+    `<div style="width:64px;height:3px;border-radius:2px;background:#b8552e;margin:0 0 16px"></div>` +
+    `<div style="${META_STYLE}">${(subject.topics || []).length} topics not in a chapter · exported from Inkbook</div>` +
+    `</div>`
+  )
+}
+
 function pdfSubjectTitlePage(subject) {
-  const topicCount = subject.chapters.reduce((n, c) => n + c.topics.length, 0)
+  const topicCount = subject.chapters.reduce((n, c) => n + c.topics.length, (subject.topics || []).length)
   return (
     `<div style="${SECTION_STYLE};padding-top:120px">` +
     `<div style="${LABEL_STYLE}">Subject</div>` +
@@ -126,6 +148,12 @@ export function buildPdfSections(scope, { subject, chapter, topic }) {
       sections.push(pdfChapterTitlePage(subject, c))
       c.topics.forEach((t) => sections.push(pdfTopicSection(t)))
     })
+    const own = subject.topics || []
+    if (own.length) {
+      // With no chapters the subject title page already introduces them.
+      if (subject.chapters.length) sections.push(pdfSubjectTopicsTitlePage(subject))
+      own.forEach((t) => sections.push(pdfTopicSection(t)))
+    }
     return { name: subject.name, sections }
   }
   return { name: 'inkbook', sections: [] }

@@ -1,7 +1,8 @@
 # InkBook client
 
 React 19 + Vite single-page app for InkBook, a study notebook organized
-Subject → Chapter → Topic, where each topic is a page of typed blocks. Design decisions are in
+Subject → Chapter → Topic, where each topic is a page of typed blocks. A topic can also sit
+directly in a subject, with no chapter. Design decisions are in
 [`../SPEC.md`](../SPEC.md). The UI follows design system v3 (SPEC decision 11): every color is a
 token in `src/index.css`, with a light “paper” theme and a dark “ink” theme.
 
@@ -68,14 +69,16 @@ See `.env.example`.
 
 Vitest + Testing Library in jsdom (`src/test/`). `renderApp()` mounts the real routes in a
 `MemoryRouter` with a fresh store and a mocked `src/api.js`, over the fixture notebook in
-`fixtures.js`. There is one file per page — dashboard, sidebar, chapter, note, search — plus
-store helpers.
+`fixtures.js`. There is one file per page — dashboard, sidebar, subject, chapter, note, search —
+plus store helpers.
 
 ## Routes
 
 - `/` — dashboard
+- `/subject/:s` — subject overview (its chapters and its own topics)
 - `/subject/:s/chapter/:c` — chapter overview
-- `/s/:s/c/:c/t/:t` — topic page
+- `/s/:s/c/:c/t/:t` — topic page (topic in a chapter)
+- `/s/:s/t/:t` — topic page (topic directly in a subject)
 
 ## Deploy
 

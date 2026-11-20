@@ -21,7 +21,7 @@ export default function NotePage() {
   const undoTick = useNotebookStore((s2) => s2.undoTick)
   const canUndo = useNotebookStore((s2) => s2.undoStack.length > 0)
   const store = useNotebookStore.getState()
-  const { goChapter } = useNav()
+  const { goSubject, goChapter } = useNav()
   const { selText, selRect, selActive, onMouseUp, onTouchEnd, clear } = useSelectionText()
   // editing: { blockId } for an existing block, or { draft: kind, initialText }
   // for a new block that is only added to the store when the editor is saved
@@ -34,7 +34,8 @@ export default function NotePage() {
   }, [t, undoTick, clear])
 
   if (!loaded) return <div className="nb-scroll" />
-  const found = findTopic(subjects, s, c, t)
+  // No :c in the URL → a topic that sits directly in the subject (chapter null).
+  const found = findTopic(subjects, s, c || null, t)
   if (!found) return <Navigate to="/" replace />
   const { subject, chapter, topic } = found
 
@@ -64,14 +65,14 @@ export default function NotePage() {
     if (sel) sel.removeAllRanges()
   }
 
-  const ids = { subjectId: subject._id, chapterId: chapter.id, topicId: topic.id }
+  const ids = { subjectId: subject._id, chapterId: chapter ? chapter.id : null, topicId: topic.id }
 
   return (
     <>
       <TopBar
         crumbs={[
-          { label: subject.name, color: subject.color },
-          { label: chapter.name, onClick: () => goChapter(subject._id, chapter.id) },
+          { label: subject.name, color: subject.color, onClick: () => goSubject(subject._id) },
+          ...(chapter ? [{ label: chapter.name, onClick: () => goChapter(subject._id, chapter.id) }] : []),
           { label: topic.name },
         ]}
       >
@@ -87,16 +88,18 @@ export default function NotePage() {
           <Button icon="undo" iconOnly disabled={!canUndo} onClick={() => store.undo()}>
             Undo (⌘Z)
           </Button>
-          <Button
-            icon="sparkles"
-            iconOnly
-            onClick={() => {
-              store.summarizeChapter(subject._id, chapter.id)
-              goChapter(subject._id, chapter.id)
-            }}
-          >
-            Summarize this chapter
-          </Button>
+          {chapter && (
+            <Button
+              icon="sparkles"
+              iconOnly
+              onClick={() => {
+                store.summarizeChapter(subject._id, chapter.id)
+                goChapter(subject._id, chapter.id)
+              }}
+            >
+              Summarize this chapter
+            </Button>
+          )}
           <Button icon="download" iconOnly onClick={() => store.openExport(ids, 'topic')}>
             Export PDF
           </Button>

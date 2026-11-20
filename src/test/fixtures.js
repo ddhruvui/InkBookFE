@@ -12,6 +12,7 @@ export const IDS = {
   kinematics: 'tp-kinematics',
   waveBasics: 'tp-waves',
   binary: 'tp-binary',
+  cheatSheet: 'tp-cheatsheet', // sits directly in Computer Science (no chapter)
 }
 
 export function makeState() {
@@ -93,6 +94,15 @@ export function makeState() {
             ],
           },
         ],
+        topics: [
+          {
+            id: IDS.cheatSheet,
+            name: 'Cheat Sheet',
+            position: 0,
+            updatedAt: '2026-11-01T10:00:00.000Z',
+            blocks: [{ id: 'b-c1', type: 'text', payload: { html: 'Hash map lookups are O(1) on average. See [[Binary Search]].' } }],
+          },
+        ],
       },
       { _id: IDS.empty, name: 'Empty Subject', color: '#1f8a70', position: 2, chapters: [] },
     ],
@@ -105,3 +115,5 @@ export function makeState() {
 
 export const topicPath = (s, c, t) => `/s/${s}/c/${c}/t/${t}`
 export const chapterPath = (s, c) => `/subject/${s}/chapter/${c}`
+export const subjectPath = (s) => `/subject/${s}`
+export const subjectTopicPath = (s, t) => `/s/${s}/t/${t}`

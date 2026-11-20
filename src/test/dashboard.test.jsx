@@ -9,7 +9,7 @@ describe('Dashboard', () => {
   it('shows notebook totals and quick actions, with no greeting or important-marks section', async () => {
     await renderApp('/')
     expect(screen.getByRole('heading', { name: 'Pick up where you left off' })).toBeInTheDocument()
-    expect(screen.getByText('3 subjects · 3 chapters · 4 topics')).toBeInTheDocument()
+    expect(screen.getByText('3 subjects · 3 chapters · 5 topics')).toBeInTheDocument()
     expect(within(screen.getByRole('main')).getByRole('button', { name: /Search notes/ })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Scan a page/ })).toBeInTheDocument()
     expect(screen.queryByText(/good (morning|afternoon|evening)/i)).not.toBeInTheDocument()
@@ -44,7 +44,8 @@ describe('Dashboard', () => {
     const { user } = await renderApp('/')
     const grid = screen.getByRole('heading', { name: 'Subjects' }).closest('section')
     expect(within(grid).getByText('2 chapters · 3 topics')).toBeInTheDocument()
-    expect(within(grid).getByText('No chapters yet')).toBeInTheDocument()
+    expect(within(grid).getByText('1 chapter · 2 topics')).toBeInTheDocument()
+    expect(within(grid).getByText('No chapters or topics yet')).toBeInTheDocument()
     await user.click(within(grid).getByRole('button', { name: /Waves/ }))
     expect(currentPath()).toBe(chapterPath(IDS.physics, IDS.waves))
   })

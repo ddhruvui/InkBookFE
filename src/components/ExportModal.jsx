@@ -1,4 +1,4 @@
-import useNotebookStore, { findSubject } from '../store/useNotebookStore'
+import useNotebookStore, { findSubject, findTopic, subjectTopicCount } from '../store/useNotebookStore'
 import { exportScopedPdf } from '../utils/pdf'
 import Modal from './ui/Modal'
 import Icon from './ui/Icon'
@@ -15,7 +15,8 @@ export default function ExportModal() {
 
   const subject = findSubject(subjects, ctx.subjectId)
   const chapter = subject && ctx.chapterId ? subject.chapters.find((c) => c.id === ctx.chapterId) : null
-  const topic = chapter && ctx.topicId ? chapter.topics.find((t) => t.id === ctx.topicId) : null
+  // A topic may sit in a chapter or directly in the subject (ctx.chapterId null).
+  const topic = subject && ctx.topicId ? findTopic(subjects, subject._id, ctx.chapterId, ctx.topicId)?.topic || null : null
 
   const scopes = [
     ...(topic ? [{ id: 'topic', icon: 'file', label: 'This topic', sub: topic.name }] : []),
@@ -23,7 +24,14 @@ export default function ExportModal() {
       ? [{ id: 'chapter', icon: 'files', label: 'Whole chapter', sub: `${chapter.name} — ${chapter.topics.length} topics` }]
       : []),
     ...(subject
-      ? [{ id: 'subject', icon: 'books', label: 'Entire subject', sub: `${subject.name} — ${subject.chapters.length} chapters` }]
+      ? [
+          {
+            id: 'subject',
+            icon: 'books',
+            label: 'Entire subject',
+            sub: `${subject.name} — ${subject.chapters.length} chapters · ${subjectTopicCount(subject)} topics`,
+          },
+        ]
       : []),
   ]
 

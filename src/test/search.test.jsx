@@ -47,7 +47,7 @@ describe('Search palette', () => {
     expect(tab('All')).toHaveAttribute('aria-selected', 'true')
     await user.keyboard('{Tab}')
     expect(tab('Only Computer Science')).toHaveAttribute('aria-selected', 'true')
-    expect(within(palette()).getAllByRole('option')).toHaveLength(1)
+    expect(within(palette()).getAllByRole('option')).toHaveLength(2)
     await user.keyboard('{Tab}')
     expect(tab('★ Important')).toHaveAttribute('aria-selected', 'true')
     expect(within(palette()).getAllByRole('option')).toHaveLength(2)

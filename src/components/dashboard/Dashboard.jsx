@@ -1,4 +1,4 @@
-import useNotebookStore, { computeRecents, topicSnippet } from '../../store/useNotebookStore'
+import useNotebookStore, { computeRecents, topicSnippet, topicPathLabel, subjectTopicCount } from '../../store/useNotebookStore'
 import { useNav } from '../../hooks/useNav'
 import TopBar from '../layout/TopBar'
 import SaveButton from '../ui/SaveButton'
@@ -14,10 +14,10 @@ export default function Dashboard() {
   const subjects = useNotebookStore((s) => s.subjects)
   const loaded = useNotebookStore((s) => s.loaded)
   const store = useNotebookStore.getState()
-  const { goTopic, goChapter } = useNav()
+  const { goTopic, goChapter, goSubject } = useNav()
   const recents = computeRecents(subjects).slice(0, 4)
   const chapterCount = subjects.reduce((n, s) => n + s.chapters.length, 0)
-  const topicCount = subjects.reduce((n, s) => n + s.chapters.reduce((m, c) => m + c.topics.length, 0), 0)
+  const topicCount = subjects.reduce((n, s) => n + subjectTopicCount(s), 0)
 
   const newSubject = () => {
     store.startAdding({ type: 'subject' })
@@ -66,9 +66,9 @@ export default function Dashboard() {
                     index={i}
                     color={r.subject.color}
                     title={r.topic.name}
-                    path={`${r.subject.name} › ${r.chapter.name}`}
+                    path={topicPathLabel(r)}
                     snippet={topicSnippet(r.topic)}
-                    onOpen={() => goTopic(r.subject._id, r.chapter.id, r.topic.id)}
+                    onOpen={() => goTopic(r.subject._id, r.chapter ? r.chapter.id : null, r.topic.id)}
                   />
                 ))}
               </div>
@@ -80,15 +80,17 @@ export default function Dashboard() {
               <h2 className="section-h">Subjects</h2>
               <div className="subject-grid">
                 {subjects.map((s) => {
-                  const topics = s.chapters.reduce((m, c) => m + c.topics.length, 0)
+                  const looseTopics = s.topics || []
                   return (
                     <div key={s._id} className="subject-card" style={{ '--subject': s.color }}>
                       <div className="subject-card-head">
                         <span className="subject-card-dot" />
-                        <span className="subject-card-name">{s.name}</span>
+                        <button type="button" className="subject-card-name link" onClick={() => goSubject(s._id)}>
+                          {s.name}
+                        </button>
                       </div>
                       <div className="subject-card-meta">
-                        {plural(s.chapters.length, 'chapter')} · {plural(topics, 'topic')}
+                        {plural(s.chapters.length, 'chapter')} · {plural(subjectTopicCount(s), 'topic')}
                       </div>
                       <div className="subject-card-chapters">
                         {s.chapters.map((c) => (
@@ -97,7 +99,15 @@ export default function Dashboard() {
                             <span className="chapter-chip-count">{c.topics.length}</span>
                           </button>
                         ))}
-                        {s.chapters.length === 0 && <span className="subject-card-empty">No chapters yet</span>}
+                        {looseTopics.map((t) => (
+                          <button type="button" key={t.id} className="chapter-chip topic-chip" onClick={() => goTopic(s._id, null, t.id)}>
+                            <Icon name="file" size={12} />
+                            {t.name}
+                          </button>
+                        ))}
+                        {s.chapters.length === 0 && looseTopics.length === 0 && (
+                          <span className="subject-card-empty">No chapters or topics yet</span>
+                        )}
                       </div>
                     </div>
                   )

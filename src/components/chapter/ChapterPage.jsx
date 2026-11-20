@@ -17,7 +17,7 @@ export default function ChapterPage() {
   const loaded = useNotebookStore((s2) => s2.loaded)
   const summary = useNotebookStore((s2) => s2.summary)
   const store = useNotebookStore.getState()
-  const { goTopic } = useNav()
+  const { goTopic, goSubject } = useNav()
 
   if (!loaded) return <div className="nb-scroll" />
   const found = findChapter(subjects, s, c)
@@ -30,7 +30,12 @@ export default function ChapterPage() {
 
   return (
     <>
-      <TopBar crumbs={[{ label: subject.name, color: subject.color }, { label: chapter.name }]}>
+      <TopBar
+        crumbs={[
+          { label: subject.name, color: subject.color, onClick: () => goSubject(subject._id) },
+          { label: chapter.name },
+        ]}
+      >
         <Button icon="sparkles" onClick={() => store.summarizeChapter(subject._id, chapter.id)} disabled={summarizing}>
           Summarize
         </Button>

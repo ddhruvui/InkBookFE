@@ -28,6 +28,6 @@ describe('topicSnippet', () => {
 describe('computeRecents', () => {
   it('orders topics by updatedAt, newest first', () => {
     const names = computeRecents(makeState().subjects).map((r) => r.topic.name)
-    expect(names).toEqual(["Newton's Laws", 'Kinematics', 'Binary Search', 'Wave Basics'])
+    expect(names).toEqual(["Newton's Laws", 'Kinematics', 'Binary Search', 'Wave Basics', 'Cheat Sheet'])
   })
 })
